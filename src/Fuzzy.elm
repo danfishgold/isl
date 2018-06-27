@@ -29,12 +29,13 @@ filteredQuery query =
 match : String -> (a -> String) -> a -> Maybe ( a, Int )
 match query itemString item =
     filteredQuery query
+        |> List.indexedMap (,)
         |> List.foldl folder (Just ( itemString item, 0 ))
         |> Maybe.map (\( remainder, grade ) -> ( item, grade ))
 
 
-folder : String -> Maybe ( String, Int ) -> Maybe ( String, Int )
-folder char restOfWord =
+folder : ( Int, String ) -> Maybe ( String, Int ) -> Maybe ( String, Int )
+folder ( letterIdx, char ) restOfWord =
     case restOfWord of
         Nothing ->
             Nothing
@@ -45,4 +46,12 @@ folder char restOfWord =
                     Nothing
 
                 index :: _ ->
-                    Just ( String.dropLeft (index + 1) word, grade + index )
+                    Just ( String.dropLeft (index + 1) word, grade + distanceGrade index letterIdx )
+
+
+distanceGrade : Int -> Int -> Int
+distanceGrade dist letterIdx =
+    if dist == 0 then
+        0
+    else
+        dist + 2
