@@ -36,7 +36,7 @@ for (id, word) in words.items():
 
     sources[id] = {source.attrs['type']: source.attrs['src']
                    for source in html.find_all('source')}
-    sleep(1)
+    sleep(1.5)
 
 
 with open('sources.json', 'w') as f:
@@ -44,4 +44,16 @@ with open('sources.json', 'w') as f:
 
 with open('words.json', 'w') as f:
     content = json.dumps(words, f, ensure_ascii=False, indent=None)
+    f.write(content.encode('utf8'))
+
+
+combined = dict()
+for (id, word) in words.items():
+    combined[id] = dict(text=word)
+
+for (id, srcs) in sources.items():
+    combined[id]['sources'] = srcs
+
+with open('combined.json', 'w') as f:
+    content = json.dumps(combined, f, ensure_ascii=False, indent=None)
     f.write(content.encode('utf8'))
