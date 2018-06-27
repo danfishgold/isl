@@ -70,9 +70,9 @@ view model =
             div [ dir "rtl" ]
                 [ input [ onInput SetQuery ] []
                 , wordDict
-                    |> Dict.values
-                    |> Fuzzy.filter 1 model.query
-                    |> List.map (\word -> p [] [ text word ])
+                    |> Dict.toList
+                    |> Fuzzy.filterItems 1 model.query Tuple.second
+                    |> List.map (\( id, word ) -> p [] [ text word ])
                     |> div []
                 ]
 
