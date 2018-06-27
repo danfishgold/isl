@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Html exposing (Html, program, div, input, p, h2, text, video, source)
+import Html.Keyed
 import Html.Attributes exposing (dir, src, type_, width)
 import Html.Events exposing (onInput, onClick)
 import RemoteData exposing (WebData, RemoteData(..))
@@ -107,7 +108,7 @@ view model =
                         text ""
 
                     Just word ->
-                        video word
+                        Html.Keyed.node "div" [] [ ( "video-" ++ word.text, video word ) ]
                 ]
 
         Failure error ->
