@@ -22,9 +22,15 @@ main =
 
 
 type alias Model =
-    { words : WebData (Dict String Word)
+    { dictionary : WebData Dictionary
     , query : String
-    , selectedWord : Maybe String
+    , selectedWords : List String
+    }
+
+
+type alias Dictionary =
+    { words : Dict String Word
+    , groups : Dict String (List String)
     }
 
 
@@ -34,28 +40,35 @@ type alias Word =
     }
 
 
-wordDictDecoder : D.Decoder (Dict String Word)
-wordDictDecoder =
+wordsDecoder : D.Decoder (Dict String Word)
+wordsDecoder =
     D.map2 Word
         (D.field "text" D.string)
-        (D.field "sources" (D.dict D.string))
+        (D.field "sources" <| D.dict D.string)
         |> D.dict
+
+
+dictionaryDecoder : D.Decoder Dictionary
+dictionaryDecoder =
+    D.map2 Dictionary
+        (D.field "words" wordsDecoder)
+        (D.field "groups" <| D.dict <| D.list D.string)
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { words = NotAsked
+    ( { dictionary = NotAsked
       , query = ""
-      , selectedWord = Nothing
+      , selectedWords = []
       }
-    , RemoteData.Http.get "http://localhost:8000/combined.json" Words wordDictDecoder
+    , RemoteData.Http.get "http://localhost:8000/combined.json" SetDictionary dictionaryDecoder
     )
 
 
 type Msg
-    = Words (WebData (Dict String Word))
+    = SetDictionary (WebData Dictionary)
     | SetQuery String
-    | ShowWord String
+    | ShowWords (List String)
 
 
 subscriptions : Model -> Sub Msg
@@ -66,49 +79,52 @@ subscriptions model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Words words ->
-            ( { model | words = words }, Cmd.none )
+        SetDictionary dictionary ->
+            ( { model | dictionary = dictionary }, Cmd.none )
 
         SetQuery q ->
-            ( { model | query = q }, Cmd.none )
-
-        ShowWord id ->
             ( { model
-                | selectedWord = Just id
+                | query = q
+                , selectedWords = []
+              }
+            , Cmd.none
+            )
+
+        ShowWords ids ->
+            ( { model
+                | selectedWords = ids
                 , query = ""
               }
             , Cmd.none
             )
 
 
-wordWithId : String -> WebData (Dict String String) -> Maybe String
-wordWithId id data =
-    data |> RemoteData.toMaybe |> Maybe.andThen (Dict.get id)
-
-
 view : Model -> Html Msg
 view model =
-    case model.words of
+    case model.dictionary of
         NotAsked ->
             text "Loading..."
 
         Loading ->
             text "Loading..."
 
-        Success wordDict ->
+        Success { words, groups } ->
             div [ dir "rtl" ]
                 [ input [ onInput SetQuery ] []
-                , wordDict
+                , groups
                     |> Dict.toList
-                    |> Fuzzy.filterItems 1 model.query (Tuple.second >> .text)
-                    |> List.map (\( id, word ) -> p [ onClick (ShowWord id) ] [ text word.text ])
+                    |> Fuzzy.filterItems 1 model.query Tuple.first
+                    |> List.map
+                        (\( groupBase, ids ) ->
+                            p
+                                [ onClick (ShowWords ids) ]
+                                [ text <| groupTitle groupBase ids ]
+                        )
                     |> div []
-                , case model.selectedWord |> Maybe.andThen (\k -> Dict.get k wordDict) of
-                    Nothing ->
-                        text ""
-
-                    Just word ->
-                        Html.Keyed.node "div" [] [ ( "video-" ++ word.text, video word ) ]
+                , model.selectedWords
+                    |> List.filterMap (\k -> Dict.get k words)
+                    |> List.map (\word -> ( "video-" ++ word.text, video word ))
+                    |> Html.Keyed.node "div" []
                 ]
 
         Failure error ->
@@ -116,6 +132,16 @@ view model =
                 [ text "Error: "
                 , text <| toString error
                 ]
+
+
+groupTitle : String -> List String -> String
+groupTitle groupBase ids =
+    case List.length ids of
+        1 ->
+            groupBase
+
+        n ->
+            groupBase ++ " (x" ++ toString n ++ ")"
 
 
 video : Word -> Html msg
