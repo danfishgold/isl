@@ -113,7 +113,7 @@ view model =
 
         Failure error ->
             div []
-                [ text "Error"
+                [ text "Error: "
                 , text <| toString error
                 ]
 
