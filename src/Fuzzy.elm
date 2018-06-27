@@ -22,7 +22,7 @@ filterItems minLetters query itemString items =
 filteredQuery : String -> List String
 filteredQuery query =
     query
-        |> Regex.find Regex.All (Regex.regex "[א-ת0-9 ]")
+        |> Regex.find Regex.All (Regex.regex "[א-ת0-9]")
         |> List.map .match
 
 
