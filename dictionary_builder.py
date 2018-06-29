@@ -22,12 +22,6 @@ for letter in letters:
     for pair in r.json():
         words[pair['id']] = pair['value']
 
-# Group all versions of the same word
-word_groups = dict()
-for (id, word) in words.items():
-    base_word = re.search(r'(.*?) *(\(\d+\))?$', word).group(1)
-    word_groups[base_word] = word_groups.get(base_word, []) + [str(id)]
-
 # Get the video urls for each word
 sources = dict()
 for (id, word) in words.items():
@@ -44,6 +38,19 @@ for (id, word) in words.items():
     sources[id] = {source.attrs['type']: source.attrs['src']
                    for source in html.find_all('source')}
     sleep(1.5)
+
+# Delete words which doesn't actually have a video
+bad_ids = [2813, 5557, 5561, 5565, 5569, 5573, 5577,
+           5581, 5585, 5589, 5593, 5597, 7449, 10413, 12813]
+for id in bad_ids:
+    del words[str(id)]
+    del sources[str(id)]
+
+# Group all versions of the same word
+word_groups = dict()
+for (id, word) in words.items():
+    base_word = re.search(r'(.*?) *(\(\d+\))?$', word).group(1)
+    word_groups[base_word] = word_groups.get(base_word, []) + [str(id)]
 
 # Save word sources
 with open('sources.json', 'w') as f:
