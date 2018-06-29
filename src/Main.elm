@@ -132,8 +132,7 @@ view model =
 
         Success { words, groups } ->
             div [ dir "rtl" ]
-                [ text "באופן זמני לא כל המילים יעבדו"
-                , input [ onInput SetQuery, value model.query ] []
+                [ input [ onInput SetQuery, value model.query ] []
                 , groups
                     |> Dict.toList
                     -- |> Fuzzy.filterItems 1 model.query Tuple.first
