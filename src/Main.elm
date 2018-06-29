@@ -85,6 +85,11 @@ update msg model =
             )
 
 
+sortIds : Dict String String -> List String -> List String
+sortIds words ids =
+    List.sortBy (\id -> Dict.get id words |> Maybe.withDefault "") ids
+
+
 view : Model -> Html Msg
 view model =
     case model.dictionary of
@@ -103,7 +108,7 @@ view model =
                     |> List.map
                         (\( groupBase, ids ) ->
                             p
-                                [ onClick (ShowWords ids) ]
+                                [ onClick (ShowWords <| sortIds words ids) ]
                                 [ text <| groupTitle groupBase ids ]
                         )
                     |> div []
