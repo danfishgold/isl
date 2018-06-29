@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Html exposing (Html, program, div, input, p, h2, text, video, source)
 import Html.Keyed
-import Html.Attributes exposing (dir, src, type_, width)
+import Html.Attributes exposing (dir, src, type_, width, value)
 import Html.Events exposing (onInput, onClick)
 import RemoteData exposing (WebData, RemoteData(..))
 import RemoteData.Http
@@ -110,7 +110,7 @@ view model =
 
         Success { words, groups } ->
             div [ dir "rtl" ]
-                [ input [ onInput SetQuery ] []
+                [ input [ onInput SetQuery, value model.query ] []
                 , groups
                     |> Dict.toList
                     |> Fuzzy.filterItems 1 model.query Tuple.first
