@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Html exposing (Html, program, div, input, p, h2, text, video, source)
 import Html.Keyed
-import Html.Attributes exposing (dir, src, type_, width, value)
+import Html.Attributes exposing (dir, value, src, width, controls, autoplay, preload)
 import Html.Events exposing (onInput, onClick)
 import RemoteData exposing (WebData, RemoteData(..))
 import RemoteData.Http
@@ -29,29 +29,15 @@ type alias Model =
 
 
 type alias Dictionary =
-    { words : Dict String Word
+    { words : Dict String String
     , groups : Dict String (List String)
     }
-
-
-type alias Word =
-    { text : String
-    , sources : Dict String String
-    }
-
-
-wordsDecoder : D.Decoder (Dict String Word)
-wordsDecoder =
-    D.map2 Word
-        (D.field "text" D.string)
-        (D.field "sources" <| D.dict D.string)
-        |> D.dict
 
 
 dictionaryDecoder : D.Decoder Dictionary
 dictionaryDecoder =
     D.map2 Dictionary
-        (D.field "words" wordsDecoder)
+        (D.field "words" <| D.dict D.string)
         (D.field "groups" <| D.dict <| D.list D.string)
 
 
@@ -122,8 +108,8 @@ view model =
                         )
                     |> div []
                 , model.selectedWords
-                    |> List.filterMap (\k -> Dict.get k words)
-                    |> List.map (\word -> ( "video-" ++ word.text, video word ))
+                    |> List.filterMap (\k -> Dict.get k words |> Maybe.map (\w -> ( k, w )))
+                    |> List.map (\( id, word ) -> ( "video-" ++ word, video id word ))
                     |> Html.Keyed.node "div" []
                 ]
 
@@ -144,12 +130,16 @@ groupTitle groupBase ids =
             groupBase ++ " (x" ++ toString n ++ ")"
 
 
-video : Word -> Html msg
-video word =
+video : String -> String -> Html msg
+video id word =
     div []
-        [ Html.h2 [] [ text word.text ]
-        , word.sources
-            |> Dict.toList
-            |> List.map (\( mediaType, url ) -> source [ src url, type_ mediaType ] [])
-            |> Html.video [ Html.Attributes.width 400, Html.Attributes.controls True ]
+        [ Html.h2 [] [ text word ]
+        , Html.video
+            [ src <| "http://files.fishgold.co/isl/videos/" ++ id ++ ".mp4"
+            , width 400
+            , controls True
+            , autoplay True
+            , preload "auto"
+            ]
+            []
         ]
