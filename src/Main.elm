@@ -131,10 +131,12 @@ view model =
                     |> Dict.toList
                     |> Fuzzy.filterItems 1 model.query Tuple.first
                     |> List.map
-                        (\( groupBase, ids ) ->
+                        (\( ( groupBase, ids ), textElement ) ->
                             p
                                 [ onClick (ShowWords <| sortIds words ids) ]
-                                [ text <| groupTitle groupBase ids ]
+                                [ textElement
+                                , text <| multiplier <| List.length ids
+                                ]
                         )
                     |> div []
                 , if List.length model.selectedWords > 0 then
@@ -154,14 +156,14 @@ view model =
                 ]
 
 
-groupTitle : String -> List String -> String
-groupTitle groupBase ids =
-    case List.length ids of
+multiplier : Int -> String
+multiplier count =
+    case count of
         1 ->
-            groupBase
+            ""
 
         n ->
-            groupBase ++ " (x" ++ toString n ++ ")"
+            " (x" ++ toString n ++ ")"
 
 
 video : String -> String -> Html msg
