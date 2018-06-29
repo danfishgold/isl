@@ -1,6 +1,6 @@
 port module Main exposing (..)
 
-import Html exposing (Html, program, div, input, p, h2, text, video, button)
+import Html exposing (Html, programWithFlags, div, input, p, h2, text, video, button)
 import Html.Attributes exposing (dir, value, src, width, controls, autoplay, preload, disabled)
 import Html.Events exposing (onInput, onClick)
 import RemoteData exposing (WebData, RemoteData(..))
@@ -13,9 +13,9 @@ import Time exposing (second)
 import Task
 
 
-main : Program Never Model Msg
+main : Program Bool Model Msg
 main =
-    program
+    programWithFlags
         { init = init
         , subscriptions = subscriptions
         , update = update
@@ -44,14 +44,21 @@ dictionaryDecoder =
         (D.field "groups" <| D.dict <| D.list D.string)
 
 
-init : ( Model, Cmd Msg )
-init =
+dictionaryUrl isProduction =
+    if isProduction then
+        "http://files.fishgold.co/isl/combined.json"
+    else
+        "http://localhost:8000/combined.json"
+
+
+init : Bool -> ( Model, Cmd Msg )
+init isProduction =
     ( { dictionary = NotAsked
       , query = ""
       , selectedWords = []
       , playbackRate = 1
       }
-    , RemoteData.Http.get "http://localhost:8000/combined.json" SetDictionary dictionaryDecoder
+    , RemoteData.Http.get (dictionaryUrl isProduction) SetDictionary dictionaryDecoder
     )
 
 
