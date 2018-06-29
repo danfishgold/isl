@@ -1,0 +1,23 @@
+<!doctype html>
+
+<head>
+	<title>מילון שפת הסימנים</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+	<div id="main"></div>
+	<script src="elm.js"></script>
+	<script>
+
+		var node = document.getElementById('main')
+		var app = Elm.Main.embed(node)
+
+		app.ports.setPlaybackRate.subscribe(function (rate) {
+			document.querySelectorAll('video').forEach(function (video) {
+				video.playbackRate = rate;
+			})
+		})
+
+	</script>
+</body>
