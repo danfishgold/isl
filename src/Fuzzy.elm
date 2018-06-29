@@ -22,15 +22,16 @@ filterItems minLetters query itemString items =
 filteredQuery : String -> List String
 filteredQuery query =
     query
-        |> Regex.find Regex.All (Regex.regex "[א-ת0-9]")
+        |> Regex.find Regex.All (Regex.regex "[א-ת0-9a-zA-Z]")
         |> List.map .match
+        |> List.map String.toLower
 
 
 match : String -> (a -> String) -> a -> Maybe ( a, Int )
 match query itemString item =
     filteredQuery query
         |> List.indexedMap (,)
-        |> List.foldl folder (Just ( itemString item, 0 ))
+        |> List.foldl folder (Just ( String.toLower <| itemString item, 0 ))
         |> Maybe.map (\( remainder, grade ) -> ( item, grade ))
 
 
