@@ -1,4 +1,4 @@
-module Fuzzy exposing (debugGrade, filter, filterItems)
+module Fuzzy exposing (debugGrade, filter, filterItems, simpleFilterItems)
 
 import String
 import Regex
@@ -19,7 +19,7 @@ htmlHelper string dists reversedElements =
         dist :: rest ->
             let
                 ( before, char, after ) =
-                    splitString dist string
+                    splitString 1 dist string
             in
                 htmlHelper
                     after
@@ -27,11 +27,11 @@ htmlHelper string dists reversedElements =
                     (b [] [ text char ] :: text before :: reversedElements)
 
 
-splitString : Int -> String -> ( String, String, String )
-splitString idx string =
+splitString : Int -> Int -> String -> ( String, String, String )
+splitString length idx string =
     ( String.left idx string
-    , String.slice idx (idx + 1) string
-    , String.dropLeft (idx + 1) string
+    , String.slice idx (idx + length) string
+    , String.dropLeft (idx + length) string
     )
 
 
@@ -112,3 +112,39 @@ distanceGrade letterIdx dist =
 debugGrade : String -> String -> Maybe ( String, ( List Int, Int ) )
 debugGrade query word =
     match query identity word
+
+
+simpleFilterItems : String -> (a -> String) -> List a -> List ( a, Html msg )
+simpleFilterItems query itemString items =
+    List.filterMap (simpleMatch query itemString) items
+        |> List.sortBy Tuple.second
+        |> List.map
+            (\( item, matchIndex ) ->
+                ( item
+                , simpleHtml
+                    (itemString item)
+                    matchIndex
+                    query
+                )
+            )
+
+
+simpleMatch : String -> (a -> String) -> a -> Maybe ( a, Int )
+simpleMatch query itemString item =
+    itemString item
+        |> String.indexes query
+        |> List.head
+        |> Maybe.map (\idx -> ( item, idx ))
+
+
+simpleHtml : String -> Int -> String -> Html msg
+simpleHtml string startingIndex query =
+    let
+        ( before, during, after ) =
+            splitString (String.length query) startingIndex string
+    in
+        span []
+            [ text before
+            , b [] [ text during ]
+            , text after
+            ]

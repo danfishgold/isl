@@ -129,7 +129,9 @@ view model =
                 , input [ onInput SetQuery, value model.query ] []
                 , groups
                     |> Dict.toList
-                    |> Fuzzy.filterItems 1 model.query Tuple.first
+                    -- |> Fuzzy.filterItems 1 model.query Tuple.first
+                    |>
+                        Fuzzy.simpleFilterItems model.query Tuple.first
                     |> List.map
                         (\( ( groupBase, ids ), textElement ) ->
                             p
