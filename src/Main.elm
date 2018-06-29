@@ -1,7 +1,6 @@
 port module Main exposing (..)
 
 import Html exposing (Html, program, div, input, p, h2, text, video, button)
-import Html.Keyed
 import Html.Attributes exposing (dir, value, src, width, controls, autoplay, preload, disabled)
 import Html.Events exposing (onInput, onClick)
 import RemoteData exposing (WebData, RemoteData(..))
@@ -143,8 +142,8 @@ view model =
                     text ""
                 , model.selectedWords
                     |> List.filterMap (\k -> Dict.get k words |> Maybe.map (\w -> ( k, w )))
-                    |> List.map (\( id, word ) -> ( "video-" ++ word, video id word ))
-                    |> Html.Keyed.node "div" []
+                    |> List.map (\( id, word ) -> video id word)
+                    |> div []
                 ]
 
         Failure error ->
