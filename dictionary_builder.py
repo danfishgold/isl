@@ -39,13 +39,6 @@ for (id, word) in words.items():
                    for source in html.find_all('source')}
     sleep(1.5)
 
-# Delete words which doesn't actually have a video
-bad_ids = [2813, 5557, 5561, 5565, 5569, 5573, 5577,
-           5581, 5585, 5589, 5593, 5597, 7449, 10413, 12813]
-for id in bad_ids:
-    del words[str(id)]
-    del sources[str(id)]
-
 # Group all versions of the same word
 word_groups = dict()
 for (id, word) in words.items():
@@ -70,25 +63,41 @@ with open('combined.json', 'w') as f:
     content = json.dumps(combined, f, ensure_ascii=False, indent=2)
     f.write(content.encode('utf8'))
 
-# Download and shrink all word video files beacuse they're *huge*
-visited = {filename.replace('.mp4', '')
-           for filename in os.listdir('videos')}
-errored = set()
-for (id, srcs) in sources.items():
-    if id in visited:
-        continue
-    url = srcs['video/mp4'].replace(' ', '%20')
+
+def shrink_video(url, id, directory):
     # https://unix.stackexchange.com/questions/28803/how-can-i-reduce-a-videos-size-with-ffmpeg
     # https://superuser.com/questions/268985/remove-audio-from-video-file-with-ffmpeg
     # https://gist.github.com/dvlden/b9d923cb31775f92fa54eb8c39ccd5a9
     # https://stackoverflow.com/questions/20847674/ffmpeg-libx264-height-not-divisible-by-2
     command = ' '.join(["ffmpeg", "-i '{}'", "-an", "-b:v 500000",
-                        "-vf scale=-2:480", "videos/{}.mp4"
-                        ]).format(url, id)
+                        "-vf scale=-2:480", "{}/{}.mp4"
+                        ]).format(url.replace(' ', '%20'), directory, id)
+    return subprocess.check_call(command, shell=True)
+
+
+def shrink_sources(srcs, id, directory):
     try:
-        subprocess.check_call(command, shell=True)
-    except subprocess.CalledProcessError as e:
-        errored.add((id, url))
+        shrink_video(srcs['video/mp4'], id, directory)
+    except subprocess.CalledProcessError:
+        try:
+            shrink_video(srcs['video/webm'], id, directory)
+        except subprocess.CalledProcessError:
+            shrink_video(srcs['video/ogg'], id, directory)
+
+
+# Download and shrink all word video files beacuse they're *huge*
+visited = {filename.replace('.mp4', '')
+           for filename in os.listdir('videos')}
+errored = set()
+# for id in sources.keys():
+for id in words.keys():
+    srcs = sources[id]
+    if id in visited:
+        continue
+    try:
+        shrink_sources(srcs, id, 'videos')
+    except subprocess.CalledProcessError:
+        errored.add(id)
     except KeyboardInterrupt:
         break
     else:
