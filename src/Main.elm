@@ -192,7 +192,6 @@ video id word removeMsg =
             ]
         , Html.video
             [ src <| "http://files.fishgold.co/isl/videos/" ++ id ++ ".mp4"
-            , width 400
             , controls True
             , autoplay True
             , preload "auto"
