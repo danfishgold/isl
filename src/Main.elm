@@ -30,7 +30,8 @@ main =
 
 
 type alias Model =
-    { dictionary : WebData Dictionary
+    { baseUrl : String
+    , dictionary : WebData Dictionary
     , query : String
     , selectedWords : List String
     , playbackRate : Float
@@ -43,7 +44,8 @@ type alias Model =
 
 init : Bool -> Navigation.Location -> ( Model, Cmd Msg )
 init isProduction location =
-    ( { dictionary = NotAsked
+    ( { baseUrl = Url.base isProduction
+      , dictionary = NotAsked
       , query = ""
       , selectedWords =
             case Url.parseLocation location of
@@ -122,7 +124,7 @@ update msg model =
               }
             , Cmd.batch
                 [ PlaybackRate.setDelayed SetPlaybackRate model.playbackRate
-                , Navigation.newUrl <| Url.path <| Url.VideoList ids
+                , Navigation.newUrl <| Url.path model.baseUrl <| Url.VideoList ids
                 ]
             )
 

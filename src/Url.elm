@@ -1,4 +1,4 @@
-module Url exposing (Url(..), parseLocation, path)
+module Url exposing (Url(..), parseLocation, path, base)
 
 import UrlParser
 import Navigation
@@ -23,11 +23,19 @@ urlParser =
         ]
 
 
-path : Url -> String
-path url =
+path : String -> Url -> String
+path base url =
     case url of
         Home ->
-            "/"
+            base
 
         VideoList ids ->
-            "/#" ++ String.join "," ids
+            base ++ "#" ++ String.join "," ids
+
+
+base : Bool -> String
+base isProduction =
+    if isProduction then
+        "/isl"
+    else
+        "/"
