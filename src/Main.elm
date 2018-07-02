@@ -1,6 +1,7 @@
 port module Main exposing (..)
 
-import Html exposing (Html, programWithFlags, div, input, p, h2, text, video, button)
+import Navigation exposing (programWithFlags)
+import Html exposing (Html, div, input, p, h2, text, video, button)
 import Html.Attributes exposing (dir, value, src, width, controls, autoplay, preload, disabled)
 import Html.Events exposing (onInput, onClick)
 import RemoteData exposing (WebData, RemoteData(..))
@@ -11,11 +12,12 @@ import Fuzzy
 import Process
 import Time exposing (second)
 import Task
+import UrlParser as Url exposing ((</>))
 
 
 main : Program Bool Model Msg
 main =
-    programWithFlags
+    programWithFlags (parseLocation >> UrlChange)
         { init = init
         , subscriptions = subscriptions
         , update = update
@@ -44,6 +46,7 @@ dictionaryDecoder =
         (D.field "groups" <| D.dict <| D.list D.string)
 
 
+dictionaryUrl : Bool -> String
 dictionaryUrl isProduction =
     if isProduction then
         "http://files.fishgold.co/isl/combined.json"
@@ -51,11 +54,46 @@ dictionaryUrl isProduction =
         "http://localhost:8000/combined.json"
 
 
-init : Bool -> ( Model, Cmd Msg )
-init isProduction =
+type Url
+    = Home
+    | VideoList (List String)
+
+
+parseLocation : Navigation.Location -> Url
+parseLocation location =
+    Url.parseHash urlParser location
+        |> Maybe.withDefault Home
+
+
+urlParser : Url.Parser (Url -> a) a
+urlParser =
+    Url.oneOf
+        [ Url.map Home Url.top
+        , Url.map (String.split "," >> VideoList) Url.string
+        ]
+
+
+urlFormatter : Url -> String
+urlFormatter url =
+    case url of
+        Home ->
+            "/"
+
+        VideoList ids ->
+            "/#" ++ String.join "," ids
+
+
+init : Bool -> Navigation.Location -> ( Model, Cmd Msg )
+init isProduction location =
     ( { dictionary = NotAsked
       , query = ""
-      , selectedWords = []
+      , selectedWords =
+            case parseLocation location of
+                Home ->
+                    []
+
+                VideoList ids ->
+                    ids
       , playbackRate = 1
       }
     , RemoteData.Http.get (dictionaryUrl isProduction) SetDictionary dictionaryDecoder
@@ -67,6 +105,7 @@ type Msg
     | SetQuery String
     | ShowWords (List String)
     | SetPlaybackRate Float
+    | UrlChange Url
 
 
 subscriptions : Model -> Sub Msg
@@ -93,6 +132,9 @@ delayedSetPlaybackRate rate =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        UrlChange url ->
+            ( model, Cmd.none )
+
         SetDictionary dictionary ->
             ( { model | dictionary = dictionary }, Cmd.none )
 
@@ -109,7 +151,10 @@ update msg model =
                 | selectedWords = ids
                 , query = ""
               }
-            , delayedSetPlaybackRate model.playbackRate
+            , Cmd.batch
+                [ delayedSetPlaybackRate model.playbackRate
+                , Navigation.newUrl <| urlFormatter <| VideoList ids
+                ]
             )
 
         SetPlaybackRate rate ->
