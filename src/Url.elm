@@ -1,4 +1,4 @@
-module Url exposing (Url(..), parseLocation, path, base)
+module Url exposing (Url(..), parseLocation, path)
 
 import UrlParser
 import Navigation
@@ -31,11 +31,3 @@ path base url =
 
         VideoList ids ->
             base ++ "#" ++ String.join "," ids
-
-
-base : Bool -> String
-base isProduction =
-    if isProduction then
-        "/isl"
-    else
-        "/"

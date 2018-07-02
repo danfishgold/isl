@@ -16,7 +16,7 @@ import SearchBar
 -- MAIN
 
 
-main : Program Bool Model Msg
+main : Program String Model Msg
 main =
     Navigation.programWithFlags (Url.parseLocation >> UrlChange)
         { init = init
@@ -43,9 +43,9 @@ type alias Model =
 -- INIT
 
 
-init : Bool -> Navigation.Location -> ( Model, Cmd Msg )
-init isProduction location =
-    ( { baseUrl = Url.base isProduction
+init : String -> Navigation.Location -> ( Model, Cmd Msg )
+init baseUrl location =
+    ( { baseUrl = baseUrl
       , dictionary = NotAsked
       , query = ""
       , selectedWords =
@@ -57,7 +57,7 @@ init isProduction location =
                     ids
       , playbackRate = 1
       }
-    , Dictionary.get isProduction SetDictionary
+    , Dictionary.get baseUrl SetDictionary
     )
 
 

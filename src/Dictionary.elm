@@ -12,9 +12,9 @@ type alias Dictionary =
     }
 
 
-get : Bool -> (WebData Dictionary -> msg) -> Cmd msg
-get isProduction toMsg =
-    RemoteData.Http.get (dictionaryUrl isProduction) toMsg decoder
+get : String -> (WebData Dictionary -> msg) -> Cmd msg
+get baseUrl toMsg =
+    RemoteData.Http.get (dictionaryUrl baseUrl) toMsg decoder
 
 
 decoder : D.Decoder Dictionary
@@ -24,9 +24,6 @@ decoder =
         (D.field "groups" <| D.dict <| D.list D.string)
 
 
-dictionaryUrl : Bool -> String
-dictionaryUrl isProduction =
-    if isProduction then
-        "http://files.fishgold.co/isl/combined.json"
-    else
-        "http://localhost:8000/combined.json"
+dictionaryUrl : String -> String
+dictionaryUrl baseUrl =
+    baseUrl ++ "combined.json"
