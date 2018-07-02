@@ -1,15 +1,16 @@
 module Main exposing (..)
 
 import Navigation
-import Html exposing (Html, div, input, p, h2, text, video)
-import Html.Attributes exposing (dir, value, src, width, controls, autoplay, preload)
-import Html.Events exposing (onInput, onClick)
+import Html exposing (Html, div, input, p, h2, text, button, video)
+import Html.Keyed exposing (node)
+import Html.Attributes exposing (dir, value, src, width, controls, autoplay, preload, style)
+import Html.Events exposing (onClick)
 import RemoteData exposing (WebData, RemoteData(..))
 import Dict exposing (Dict)
-import Fuzzy
 import Url exposing (Url)
 import Dictionary exposing (Dictionary)
 import PlaybackRate
+import SearchBar
 
 
 -- MAIN
@@ -68,6 +69,7 @@ type Msg
     = SetDictionary (WebData Dictionary)
     | SetQuery String
     | ShowWords (List String)
+    | RemoveWord Int
     | SetPlaybackRate Float
     | UrlChange Url
 
@@ -110,10 +112,7 @@ update msg model =
             ( { model | dictionary = dictionary }, Cmd.none )
 
         SetQuery q ->
-            ( { model
-                | query = q
-                , selectedWords = []
-              }
+            ( { model | query = q }
             , Cmd.none
             )
 
@@ -128,13 +127,22 @@ update msg model =
                 ]
             )
 
+        RemoveWord idx ->
+            let
+                newIds =
+                    listRemove idx model.selectedWords
+            in
+                ( { model | selectedWords = newIds }
+                , Navigation.newUrl <| Url.path model.baseUrl <| Url.VideoList newIds
+                )
+
         SetPlaybackRate rate ->
             ( { model | playbackRate = rate }, PlaybackRate.set rate )
 
 
-sortIds : Dict String String -> List String -> List String
-sortIds words ids =
-    List.sortBy (\id -> Dict.get id words |> Maybe.withDefault "") ids
+listRemove : Int -> List a -> List a
+listRemove idx list =
+    List.take (idx) list ++ List.drop (idx + 1) list
 
 
 
@@ -150,31 +158,22 @@ view model =
         Loading ->
             text "Loading..."
 
-        Success { words, groups } ->
+        Success dict ->
             div [ dir "rtl" ]
-                [ input [ onInput SetQuery, value model.query ] []
-                , groups
-                    |> Dict.toList
-                    -- |> Fuzzy.filterItems 1 model.query Tuple.first
-                    |>
-                        Fuzzy.simpleFilterItems model.query Tuple.first
-                    |> List.map
-                        (\( ( groupBase, ids ), textElement ) ->
-                            p
-                                [ onClick (ShowWords <| sortIds words ids) ]
-                                [ textElement
-                                , text <| multiplier <| List.length ids
-                                ]
-                        )
-                    |> div []
+                [ SearchBar.view
+                    SetQuery
+                    ShowWords
+                    (\newIds -> ShowWords (model.selectedWords ++ newIds))
+                    dict
+                    model.query
                 , if List.length model.selectedWords > 0 then
                     PlaybackRate.control SetPlaybackRate model.playbackRate
                   else
                     text ""
                 , model.selectedWords
-                    |> List.filterMap (\k -> Dict.get k words |> Maybe.map (\w -> ( k, w )))
-                    |> List.map (\( id, word ) -> video id word)
-                    |> div []
+                    |> List.filterMap (\k -> Dict.get k dict.words |> Maybe.map (\w -> ( k, w )))
+                    |> List.indexedMap (\idx ( id, word ) -> ( id, video id word (RemoveWord idx) ))
+                    |> node "div" [ style [ ( "display", "flex" ), ( "flex-wrap", "wrap" ) ] ]
                 ]
 
         Failure error ->
@@ -184,20 +183,13 @@ view model =
                 ]
 
 
-multiplier : Int -> String
-multiplier count =
-    case count of
-        1 ->
-            ""
-
-        n ->
-            " (x" ++ toString n ++ ")"
-
-
-video : String -> String -> Html msg
-video id word =
+video : String -> String -> msg -> Html msg
+video id word removeMsg =
     div []
-        [ Html.h2 [] [ text word ]
+        [ div [ style [ ( "display", "flex" ), ( "align-items", "baseline" ) ] ]
+            [ h2 [] [ text word ]
+            , button [ onClick removeMsg ] [ text "מחק" ]
+            ]
         , Html.video
             [ src <| "http://files.fishgold.co/isl/videos/" ++ id ++ ".mp4"
             , width 400
