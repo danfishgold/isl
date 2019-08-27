@@ -1,28 +1,33 @@
-module Main exposing (..)
+module Main exposing (main)
 
-import Navigation
-import Html exposing (Html, div, input, p, h2, text, button, video)
-import Html.Keyed exposing (node)
-import Html.Attributes exposing (dir, value, src, width, controls, autoplay, preload, style)
-import Html.Events exposing (onClick)
-import RemoteData exposing (WebData, RemoteData(..))
-import Dict exposing (Dict)
-import Url exposing (Url)
+import Browser
+import Browser.Navigation as Nav
+import Dict
 import Dictionary exposing (Dictionary)
+import Html exposing (Html, button, div, h2, text, video)
+import Html.Attributes exposing (autoplay, controls, dir, preload, src, style)
+import Html.Events exposing (onClick)
+import Html.Keyed exposing (node)
 import PlaybackRate
+import RemoteData exposing (RemoteData(..), WebData)
+import Route
 import SearchBar
+import Url exposing (Url)
+
 
 
 -- MAIN
 
 
-main : Program String Model Msg
+main : Program Flags Model Msg
 main =
-    Navigation.programWithFlags (Url.parseLocation >> UrlChange)
+    Browser.application
         { init = init
-        , subscriptions = subscriptions
         , update = update
         , view = view
+        , subscriptions = subscriptions
+        , onUrlChange = UrlChanged
+        , onUrlRequest = LinkClicked
         }
 
 
@@ -31,34 +36,12 @@ main =
 
 
 type alias Model =
-    { baseUrl : String
-    , dictionary : WebData Dictionary
+    { dictionary : WebData Dictionary
     , query : String
     , selectedWords : List String
     , playbackRate : Float
+    , key : Nav.Key
     }
-
-
-
--- INIT
-
-
-init : String -> Navigation.Location -> ( Model, Cmd Msg )
-init baseUrl location =
-    ( { baseUrl = baseUrl
-      , dictionary = NotAsked
-      , query = ""
-      , selectedWords =
-            case Url.parseLocation location of
-                Url.Home ->
-                    []
-
-                Url.VideoList ids ->
-                    ids
-      , playbackRate = 1
-      }
-    , Dictionary.get baseUrl SetDictionary
-    )
 
 
 
@@ -71,7 +54,31 @@ type Msg
     | ShowWords (List String)
     | RemoveWord Int
     | SetPlaybackRate Float
-    | UrlChange Url
+    | UrlChanged Url
+    | LinkClicked Browser.UrlRequest
+
+
+
+-- INIT
+
+
+type alias Flags =
+    ()
+
+
+init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init () url key =
+    let
+        ( model, pageCmd ) =
+            updateModelWithUrl url
+                { dictionary = Loading
+                , query = ""
+                , selectedWords = []
+                , playbackRate = 1
+                , key = key
+                }
+    in
+    ( model, Cmd.batch [ pageCmd, Dictionary.get SetDictionary ] )
 
 
 
@@ -79,7 +86,7 @@ type Msg
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -90,23 +97,8 @@ subscriptions model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UrlChange url ->
-            case url of
-                Url.Home ->
-                    ( { model
-                        | query = ""
-                        , selectedWords = []
-                      }
-                    , Cmd.none
-                    )
-
-                Url.VideoList ids ->
-                    ( { model
-                        | query = ""
-                        , selectedWords = ids
-                      }
-                    , Cmd.none
-                    )
+        UrlChanged url ->
+            updateModelWithUrl url model
 
         SetDictionary dictionary ->
             ( { model | dictionary = dictionary }, Cmd.none )
@@ -123,7 +115,7 @@ update msg model =
               }
             , Cmd.batch
                 [ PlaybackRate.setDelayed SetPlaybackRate model.playbackRate
-                , Navigation.newUrl <| Url.path model.baseUrl <| Url.VideoList ids
+                , Route.push model.key (Route.VideoList ids)
                 ]
             )
 
@@ -132,25 +124,60 @@ update msg model =
                 newIds =
                     listRemove idx model.selectedWords
             in
-                ( { model | selectedWords = newIds }
-                , Navigation.newUrl <| Url.path model.baseUrl <| Url.VideoList newIds
-                )
+            ( { model | selectedWords = newIds }
+            , Route.push model.key (Route.VideoList newIds)
+            )
 
         SetPlaybackRate rate ->
             ( { model | playbackRate = rate }, PlaybackRate.set rate )
 
+        LinkClicked urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl model.key (Url.toString url) )
+
+                Browser.External href ->
+                    ( model, Nav.load href )
+
+
+updateModelWithUrl : Url -> Model -> ( Model, Cmd Msg )
+updateModelWithUrl url model =
+    case Route.parse url of
+        Route.Home ->
+            ( { model
+                | query = ""
+                , selectedWords = []
+              }
+            , Cmd.none
+            )
+
+        Route.VideoList ids ->
+            ( { model
+                | query = ""
+                , selectedWords = ids
+              }
+            , Cmd.none
+            )
+
 
 listRemove : Int -> List a -> List a
 listRemove idx list =
-    List.take (idx) list ++ List.drop (idx + 1) list
+    List.take idx list ++ List.drop (idx + 1) list
 
 
 
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
+    { title = "מילון שפת הסימנים"
+    , body = [ body model ]
+    }
+
+
+body : Model -> Html Msg
+body model =
     case model.dictionary of
         NotAsked ->
             text "Loading..."
@@ -168,30 +195,30 @@ view model =
                     model.query
                 , if List.length model.selectedWords > 0 then
                     PlaybackRate.control SetPlaybackRate model.playbackRate
+
                   else
                     text ""
                 , model.selectedWords
                     |> List.filterMap (\k -> Dict.get k dict.words |> Maybe.map (\w -> ( k, w )))
                     |> List.indexedMap (\idx ( id, word ) -> ( id, video id word (RemoveWord idx) ))
-                    |> node "div" [ style [ ( "display", "flex" ), ( "flex-wrap", "wrap" ) ] ]
+                    |> node "div" [ style "display" "flex", style "flex-wrap" "wrap" ]
                 ]
 
-        Failure error ->
+        Failure _ ->
             div []
-                [ text "Error: "
-                , text <| toString error
+                [ text "אוי לא! היתה שגיאת רשת"
                 ]
 
 
 video : String -> String -> msg -> Html msg
 video id word removeMsg =
     div []
-        [ div [ style [ ( "display", "flex" ), ( "align-items", "baseline" ) ] ]
+        [ div [ style "display" "flex", style "align-items" "baseline" ]
             [ h2 [] [ text word ]
             , button [ onClick removeMsg ] [ text "מחק" ]
             ]
         , Html.video
-            [ src <| "http://files.fishgold.co/isl/videos/" ++ id ++ ".mp4"
+            [ src <| "http://files.fishgold.co.il/isl/videos/" ++ id ++ ".mp4"
             , controls True
             , autoplay True
             , Html.Attributes.attribute "muted" "true"

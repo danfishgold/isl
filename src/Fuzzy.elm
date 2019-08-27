@@ -1,8 +1,8 @@
 module Fuzzy exposing (debugGrade, filter, filterItems, simpleFilterItems)
 
-import String
+import Html exposing (Html, b, span, text)
 import Regex
-import Html exposing (Html, span, b, text)
+import String
 
 
 html : String -> List Int -> Html msg
@@ -21,10 +21,10 @@ htmlHelper string dists reversedElements =
                 ( before, char, after ) =
                     splitString 1 dist string
             in
-                htmlHelper
-                    after
-                    rest
-                    (b [] [ text char ] :: text before :: reversedElements)
+            htmlHelper
+                after
+                rest
+                (b [] [ text char ] :: text before :: reversedElements)
 
 
 splitString : Int -> Int -> String -> ( String, String, String )
@@ -44,16 +44,23 @@ filterItems : Int -> String -> (a -> String) -> List a -> List ( a, Html msg )
 filterItems minLetters query itemString items =
     if List.length (filteredQuery query) < minLetters then
         []
+
     else
         List.filterMap (match query itemString) items
             |> List.sortBy (Tuple.second >> Tuple.second)
             |> List.map (\( item, ( dists, _ ) ) -> ( item, html (itemString item) dists ))
 
 
+validCharacters : Regex.Regex
+validCharacters =
+    Regex.fromString "[א-ת0-9a-zA-Z]"
+        |> Maybe.withDefault Regex.never
+
+
 filteredQuery : String -> List String
 filteredQuery query =
     query
-        |> Regex.find Regex.All (Regex.regex "[א-ת0-9a-zA-Z]")
+        |> Regex.find validCharacters
         |> List.map .match
         |> List.map String.toLower
 
@@ -61,32 +68,26 @@ filteredQuery query =
 match : String -> (a -> String) -> a -> Maybe ( a, ( List Int, Int ) )
 match query itemString item =
     filteredQuery query
-        |> List.indexedMap (,)
+        |> List.indexedMap (\a b -> ( a, b ))
         |> List.foldl folder (Just ( String.toLower <| itemString item, [] ))
         |> Maybe.andThen
             (\( _, dists ) ->
-                case grade dists of
-                    Nothing ->
-                        Nothing
-
-                    Just grd ->
-                        Just ( item, ( dists, grd ) )
+                grade dists |> Maybe.map (\grd -> ( item, ( dists, grd ) ))
             )
 
 
 folder : ( Int, String ) -> Maybe ( String, List Int ) -> Maybe ( String, List Int )
-folder ( letterIdx, char ) restOfWord =
-    case restOfWord of
-        Nothing ->
-            Nothing
+folder ( _, char ) restOfWord =
+    restOfWord
+        |> Maybe.andThen
+            (\( word, dists ) ->
+                case String.indexes char word of
+                    [] ->
+                        Nothing
 
-        Just ( word, dists ) ->
-            case String.indexes char word of
-                [] ->
-                    Nothing
-
-                index :: _ ->
-                    Just ( String.dropLeft (index + 1) word, dists ++ [ index ] )
+                    index :: _ ->
+                        Just ( String.dropLeft (index + 1) word, dists ++ [ index ] )
+            )
 
 
 grade : List Int -> Maybe Int
@@ -95,16 +96,18 @@ grade dists =
         jumps =
             dists |> List.drop 1 |> List.filter (\n -> n > 1) |> List.length
     in
-        if jumps > 1 then
-            Nothing
-        else
-            dists |> List.indexedMap distanceGrade |> List.sum |> Just
+    if jumps > 1 then
+        Nothing
+
+    else
+        dists |> List.indexedMap distanceGrade |> List.sum |> Just
 
 
 distanceGrade : Int -> Int -> Int
-distanceGrade letterIdx dist =
+distanceGrade _ dist =
     if dist == 0 then
         0
+
     else
         dist + 2
 
@@ -143,8 +146,8 @@ simpleHtml string startingIndex query =
         ( before, during, after ) =
             splitString (String.length query) startingIndex string
     in
-        span []
-            [ text before
-            , b [] [ text during ]
-            , text after
-            ]
+    span []
+        [ text before
+        , b [] [ text during ]
+        , text after
+        ]

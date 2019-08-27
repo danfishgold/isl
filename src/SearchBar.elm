@@ -1,11 +1,11 @@
-module SearchBar exposing (..)
+module SearchBar exposing (multiplier, sortIds, view)
 
-import Html exposing (Html, div, input, p, span, button, text)
-import Html.Attributes exposing (value, dir)
-import Html.Events exposing (onInput, onClick)
 import Dict exposing (Dict)
-import Fuzzy
 import Dictionary exposing (Dictionary)
+import Fuzzy
+import Html exposing (Html, button, div, input, p, span, text)
+import Html.Attributes exposing (dir, value)
+import Html.Events exposing (onClick, onInput)
 
 
 view : (String -> msg) -> (List String -> msg) -> (List String -> msg) -> Dictionary -> String -> Html msg
@@ -16,7 +16,7 @@ view inputMsg setGroupMsg addGroupMsg { words, groups } query =
             |> Dict.toList
             |> Fuzzy.simpleFilterItems query Tuple.first
             |> List.map
-                (\( ( groupBase, ids ), textElement ) ->
+                (\( ( _, ids ), textElement ) ->
                     p []
                         [ span
                             [ onClick (setGroupMsg <| sortIds words ids) ]
@@ -39,7 +39,7 @@ multiplier count =
             ""
 
         n ->
-            " (x" ++ toString n ++ ")"
+            " (x" ++ String.fromInt n ++ ")"
 
 
 sortIds : Dict String String -> List String -> List String

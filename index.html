@@ -1,37 +1,33 @@
-<!doctype html>
+<!DOCTYPE html>
 
 <head>
-	<title>מילון שפת הסימנים</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta charset="UTF-8">
-	<style>
-		@media only screen and (max-width: 600px) {
-			video {
-				width: 95vw;
-			}
-		}
+  <title>מילון שפת הסימנים</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <style>
+    @media only screen and (max-width: 600px) {
+      video {
+        width: 95vw;
+      }
+    }
 
-		@media only screen and (min-width: 600px) {
-			video {
-				width: 400px;
-			}
-		}
-	</style>
+    @media only screen and (min-width: 600px) {
+      video {
+        width: 400px;
+      }
+    }
+  </style>
 </head>
 
 <body>
-	<div id="main"></div>
-	<script src="elm.js"></script>
-	<script>
+  <script src="elm.js"></script>
+  <script>
+    var app = Elm.Main.init()
 
-		var node = document.getElementById('main')
-		var app = Elm.Main.embed(node, '/')
-
-		app.ports.setPlaybackRate.subscribe(function (rate) {
-			document.querySelectorAll('video').forEach(function (video) {
-				video.playbackRate = rate;
-			})
-		})
-
-	</script>
+    app.ports.setPlaybackRate.subscribe(function(rate) {
+      document.querySelectorAll('video').forEach(function(video) {
+        video.playbackRate = rate
+      })
+    })
+  </script>
 </body>

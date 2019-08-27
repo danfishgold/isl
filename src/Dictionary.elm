@@ -2,8 +2,8 @@ module Dictionary exposing (Dictionary, get)
 
 import Dict exposing (Dict)
 import Json.Decode as D
-import RemoteData.Http
 import RemoteData exposing (WebData)
+import RemoteData.Http
 
 
 type alias Dictionary =
@@ -12,9 +12,9 @@ type alias Dictionary =
     }
 
 
-get : String -> (WebData Dictionary -> msg) -> Cmd msg
-get baseUrl toMsg =
-    RemoteData.Http.get (dictionaryUrl baseUrl) toMsg decoder
+get : (WebData Dictionary -> msg) -> Cmd msg
+get toMsg =
+    RemoteData.Http.get "combined.json" toMsg decoder
 
 
 decoder : D.Decoder Dictionary
@@ -22,8 +22,3 @@ decoder =
     D.map2 Dictionary
         (D.field "words" <| D.dict D.string)
         (D.field "groups" <| D.dict <| D.list D.string)
-
-
-dictionaryUrl : String -> String
-dictionaryUrl baseUrl =
-    baseUrl ++ "combined.json"
