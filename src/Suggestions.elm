@@ -10,7 +10,7 @@ import Fuzzy
 suggestions : (WordId -> msg) -> Dictionary -> String -> Element msg
 suggestions selectWord dictionary queryText =
     Dictionary.groupList dictionary
-        |> Fuzzy.simpleFilterItems queryText Tuple.first
+        |> Fuzzy.filter queryText Tuple.first
         |> List.map
             (\( ( _, group ), matchText ) ->
                 el
