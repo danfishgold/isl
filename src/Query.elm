@@ -1,59 +1,117 @@
-module Query exposing (Query, addBlockAndResetText, blockList, empty, fromList, hasBlocks, isEmpty, removeBlockAtIndex, removeLastBlock)
+module Query exposing
+    ( Query
+    , appendBlock
+    , blockList
+    , blocksChanged
+    , empty
+    , fromList
+    , hasBlocks
+    , isEmpty
+    , isTextEmpty
+    , removeBlockAtIndex
+    , removeLastBlock
+    , setText
+    , text
+    )
 
 import Array exposing (Array)
-import Key exposing (Key)
 
 
-type alias Query block =
-    { blocksBefore : Array block
-    , text : String
-    }
+type Query block
+    = Query
+        { blocksBefore : Array block
+        , text : String
+        }
+
+
+
+-- CREATION
 
 
 empty : Query block
 empty =
-    { blocksBefore = Array.empty
-    , text = ""
-    }
+    fromList []
 
 
 fromList : List block -> Query block
 fromList blocks =
-    { blocksBefore = Array.fromList blocks
-    , text = ""
-    }
+    Query
+        { blocksBefore = Array.fromList blocks
+        , text = ""
+        }
+
+
+
+-- EMPTINESS
 
 
 isEmpty : Query block -> Bool
 isEmpty query =
-    Array.isEmpty query.blocksBefore && String.isEmpty query.text
+    not (hasBlocks query) && isTextEmpty query
 
 
 hasBlocks : Query block -> Bool
-hasBlocks query =
-    not <| Array.isEmpty query.blocksBefore
+hasBlocks (Query q) =
+    not <| Array.isEmpty q.blocksBefore
 
 
-removeLastBlock : Query block -> Query block
-removeLastBlock query =
-    { query | blocksBefore = Array.slice 0 -1 query.blocksBefore }
+isTextEmpty : Query block -> Bool
+isTextEmpty (Query q) =
+    String.isEmpty q.text
 
 
-removeBlockAtIndex : Int -> Query block -> Query block
-removeBlockAtIndex idx query =
-    { query
-        | blocksBefore =
-            Array.append
-                (Array.slice 0 idx query.blocksBefore)
-                (Array.slice (idx + 1) (Array.length query.blocksBefore) query.blocksBefore)
-    }
 
-
-addBlockAndResetText : block -> Query block -> Query block
-addBlockAndResetText block q =
-    { text = "", blocksBefore = Array.push block q.blocksBefore }
+-- ACCESS
 
 
 blockList : Query block -> List block
-blockList query =
-    Array.toList query.blocksBefore
+blockList (Query q) =
+    Array.toList q.blocksBefore
+
+
+text : Query block -> String
+text (Query q) =
+    q.text
+
+
+
+-- BLOCK MANIPULATION
+
+
+removeLastBlock : Query block -> Query block
+removeLastBlock (Query q) =
+    Query { q | blocksBefore = Array.slice 0 -1 q.blocksBefore }
+
+
+removeBlockAtIndex : Int -> Query block -> Query block
+removeBlockAtIndex idx (Query q) =
+    Query
+        { q
+            | blocksBefore =
+                Array.append
+                    (Array.slice 0 idx q.blocksBefore)
+                    (Array.slice (idx + 1) (Array.length q.blocksBefore) q.blocksBefore)
+        }
+
+
+appendBlock : block -> Query block -> Query block
+appendBlock block (Query q) =
+    Query { q | blocksBefore = Array.push block q.blocksBefore }
+
+
+
+-- TEXT MANIPULATION
+
+
+setText : String -> Query block -> Query block
+setText newText (Query q) =
+    Query { q | text = newText }
+
+
+
+-- OTHER
+
+
+blocksChanged : Query block -> Query block -> Bool
+blocksChanged (Query q1) (Query q2) =
+    q1.blocksBefore /= q2.blocksBefore

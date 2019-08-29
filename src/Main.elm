@@ -110,13 +110,13 @@ update msg model =
 
         SetQueryText text ->
             let
-                q =
-                    model.query
+                newQuery =
+                    Query.setText text model.query
             in
-            ( { model | query = { q | text = text } }
+            ( { model | query = newQuery }
             , Cmd.batch
                 [ Cmd.none --Route.push model.key (Route.VideoList ids)
-                , if model.query.blocksBefore /= q.blocksBefore then
+                , if Query.blocksChanged model.query newQuery then
                     PlaybackRate.setDelayed SetPlaybackRate model.playbackRate
 
                   else
@@ -144,7 +144,7 @@ update msg model =
                                 model.selectedSuggestion
                                 (RemoteData.toMaybe model.dictionary
                                     |> Maybe.map Dictionary.groupList
-                                    |> Maybe.map (Fuzzy.filter model.query.text Tuple.first)
+                                    |> Maybe.map (Fuzzy.filter (Query.text model.query) Tuple.first)
                                 )
                                 |> Maybe.andThen
                                     (identity
@@ -163,7 +163,7 @@ update msg model =
                             addWordToQueryAndReset word model
 
                 Key.Backspace ->
-                    if String.isEmpty model.query.text then
+                    if Query.isTextEmpty model.query then
                         ( { model | query = Query.removeLastBlock model.query }, Cmd.none )
 
                     else
@@ -183,7 +183,7 @@ addWordToQueryAndReset : WordId -> Model -> ( Model, Cmd Msg )
 addWordToQueryAndReset word model =
     let
         newQuery =
-            Query.addBlockAndResetText word model.query
+            model.query |> Query.appendBlock word |> Query.setText ""
     in
     ( { model | query = newQuery }
     , Route.push model.key (Route.VideoList (Query.blockList newQuery))
@@ -234,7 +234,7 @@ view model =
                   <|
                     Element.column [ height fill ]
                         [ blockBar InputKeyHit SetQueryText (Dictionary.title dict) model.query
-                        , suggestions SelectSuggestion dict model.query.text
+                        , suggestions SelectSuggestion dict (Query.text model.query)
                         , if Query.hasBlocks model.query then
                             PlaybackRate.control SetPlaybackRate model.playbackRate
 

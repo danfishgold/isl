@@ -78,6 +78,6 @@ blockBar onKey onChange blockToString query =
         ]
         (List.concat
             [ Query.blockList query |> List.map (blockToString >> block)
-            , [ input onKey onChange placeholder query.text ]
+            , [ input onKey onChange placeholder (Query.text query) ]
             ]
         )
