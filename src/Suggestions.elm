@@ -1,28 +1,23 @@
 module Suggestions exposing (suggestions)
 
 import Dict exposing (Dict)
-import Dictionary exposing (Dictionary)
+import Dictionary exposing (Dictionary, WordId)
 import Element exposing (..)
 import Element.Events exposing (onClick)
 import Fuzzy
 
 
-suggestions : Dictionary -> String -> Element msg
-suggestions { words, groups } query =
-    groups
-        |> Dict.toList
-        |> Fuzzy.simpleFilterItems query Tuple.first
+suggestions : (WordId -> msg) -> Dictionary -> String -> Element msg
+suggestions selectWord dictionary queryText =
+    Dictionary.groupList dictionary
+        |> Fuzzy.simpleFilterItems queryText Tuple.first
         |> List.map
-            (\( ( _, ids ), paragraph ) ->
+            (\( ( _, group ), matchText ) ->
                 el
-                    [ width fill
+                    [ onClick (selectWord group.primary)
+                    , width fill
                     , height shrink
                     ]
-                    paragraph
+                    matchText
             )
         |> column [ height fill, scrollbarY, spacing 5 ]
-
-
-sortIds : Dict String String -> List String -> List String
-sortIds words ids =
-    List.sortBy (\id -> Dict.get id words |> Maybe.withDefault "") ids

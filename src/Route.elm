@@ -1,6 +1,7 @@
 module Route exposing (Route(..), parse, push, replace, toString)
 
 import Browser.Navigation as Nav
+import Dictionary exposing (WordId)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser)
 import Util exposing (maybeList)
@@ -8,7 +9,7 @@ import Util exposing (maybeList)
 
 type Route
     = Home
-    | VideoList (List Int)
+    | VideoList (List WordId)
 
 
 parse : Url -> Route
@@ -29,17 +30,9 @@ fragmentParser frag =
             Home
 
         Just str ->
-            listOfInts str
+            Dictionary.wordIdsFromString str
                 |> Maybe.map VideoList
                 |> Maybe.withDefault Home
-
-
-listOfInts : String -> Maybe (List Int)
-listOfInts str =
-    str
-        |> String.split ","
-        |> List.map String.toInt
-        |> maybeList
 
 
 toString : Route -> String
@@ -49,7 +42,7 @@ toString route =
             "#"
 
         VideoList ids ->
-            "#" ++ String.join "," (List.map String.fromInt ids)
+            "#" ++ String.join "," (List.map Dictionary.wordIdToString ids)
 
 
 push : Nav.Key -> Route -> Cmd msg

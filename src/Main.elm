@@ -3,13 +3,12 @@ module Main exposing (main)
 import BlockBar exposing (blockBar)
 import Browser
 import Browser.Navigation as Nav
-import Dict
-import Dictionary exposing (Dictionary)
-import Element exposing (Element)
-import Html exposing (Html, button, div, h2, text, video)
-import Html.Attributes exposing (autoplay, controls, dir, preload, src, style)
-import Html.Events exposing (onClick)
-import Html.Keyed exposing (node)
+import Dictionary exposing (Dictionary, WordId)
+import Element exposing (..)
+import Element.Font as Font
+import Element.Lazy exposing (lazy2)
+import Html
+import Html.Attributes exposing (autoplay, controls, dir, preload, src)
 import Key exposing (Key)
 import PlaybackRate
 import Query exposing (Query)
@@ -41,7 +40,8 @@ main =
 
 type alias Model =
     { dictionary : WebData Dictionary
-    , query : Query Int
+    , query : Query WordId
+    , selectedSuggestion : Maybe WordId
     , playbackRate : Float
     , key : Nav.Key
     }
@@ -58,6 +58,7 @@ type Msg
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
     | InputKeyHit Key
+    | SelectSuggestion WordId
 
 
 
@@ -75,11 +76,12 @@ init () url key =
             updateModelWithUrl url
                 { dictionary = Loading
                 , query = Query.empty
+                , selectedSuggestion = Nothing
                 , playbackRate = 1
                 , key = key
                 }
     in
-    ( model, Cmd.batch [ pageCmd, Dictionary.get SetDictionary ] )
+    ( model, Cmd.batch [ pageCmd, Dictionary.fetch SetDictionary ] )
 
 
 
@@ -97,7 +99,7 @@ subscriptions _ =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
+    case Debug.log "msg" msg of
         UrlChanged url ->
             updateModelWithUrl url model
 
@@ -134,16 +136,39 @@ update msg model =
         InputKeyHit key ->
             case key of
                 Key.Enter ->
-                    ( model, Cmd.none )
+                    case model.selectedSuggestion of
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                        Just word ->
+                            addWordToQueryAndReset word model
 
                 Key.Backspace ->
-                    ( model, Cmd.none )
+                    if String.isEmpty model.query.text then
+                        ( { model | query = Query.removeLastBlock model.query }, Cmd.none )
+
+                    else
+                        ( model, Cmd.none )
 
                 Key.Up ->
                     ( model, Cmd.none )
 
                 Key.Down ->
                     ( model, Cmd.none )
+
+        SelectSuggestion word ->
+            addWordToQueryAndReset word model
+
+
+addWordToQueryAndReset : WordId -> Model -> ( Model, Cmd Msg )
+addWordToQueryAndReset word model =
+    let
+        newQuery =
+            Query.addBlockAndResetText word model.query
+    in
+    ( { model | query = newQuery }
+    , Route.push model.key (Route.VideoList newQuery.blocksBefore)
+    )
 
 
 updateModelWithUrl : Url -> Model -> ( Model, Cmd Msg )
@@ -175,65 +200,54 @@ view model =
             Loading ->
                 []
 
-            Failure _ ->
-                [ text "fail" ]
+            Failure err ->
+                let
+                    _ =
+                        Debug.log "error" err
+                in
+                [ Html.text "uh oh" ]
 
             Success dict ->
-                [ Element.layout [ Element.htmlAttribute (Html.Attributes.dir "rtl") ] <|
+                [ Element.layout
+                    [ Element.htmlAttribute (Html.Attributes.dir "rtl")
+                    , Font.family [ Font.typeface "arial", Font.sansSerif ]
+                    ]
+                  <|
                     Element.column []
-                        [ blockBar InputKeyHit SetQueryText (always "heyyy") model.query
-                        , suggestions dict model.query.text
+                        [ blockBar InputKeyHit SetQueryText (Dictionary.title dict) model.query
+                        , suggestions SelectSuggestion dict model.query.text
                         , if List.length model.query.blocksBefore > 0 then
                             PlaybackRate.control SetPlaybackRate model.playbackRate
 
                           else
                             Element.none
-                        , model.query.blocksBefore
-                            |> List.filterMap (\k -> Dict.get k dict.words |> Maybe.map (\w -> ( k, w )))
-                            |> List.indexedMap (\idx ( id, word ) -> ( id, video id ))
-                            -- |> node "div" [ style "display" "flex", style "flex-wrap" "wrap" ]
-                            |> always (Element.text "video")
+                        , lazy2 videos dict model.query.blocksBefore
+                        , description
                         ]
                 ]
     }
 
 
-
--- body : Model -> Html Msg
--- body model =
---     case model.dictionary of
---         NotAsked ->
---             text "Loading..."
---         Loading ->
---             text "Loading..."
---         Success dict ->
---             div [ dir "rtl" ]
---                 [ SearchBar.view
---                     SetQueryText
---                     ShowWords
---                     (\newIds -> ShowWords (model.selectedWords ++ newIds))
---                     dict
---                     model.query
--- , if List.length model.selectedWords > 0 then
---     PlaybackRate.control SetPlaybackRate model.playbackRate
---   else
---     text ""
--- , model.selectedWords
---     |> List.filterMap (\k -> Dict.get k dict.words |> Maybe.map (\w -> ( k, w )))
---     |> List.indexedMap (\idx ( id, word ) -> ( id, video id word (RemoveWord idx) ))
---     |> node "div" [ style "display" "flex", style "flex-wrap" "wrap" ]
--- ]
---         Failure _ ->
---             div []
---                 [ text "אוי לא! היתה שגיאת רשת"
---                 ]
+videos : Dictionary -> List WordId -> Element Msg
+videos dictionary words =
+    words
+        |> List.map (videoWrapper dictionary)
+        |> wrappedRow []
 
 
-video : Int -> Element msg
+videoWrapper : Dictionary -> WordId -> Element Msg
+videoWrapper dict id =
+    column []
+        [ text (Dictionary.title dict id)
+        , video id
+        ]
+
+
+video : WordId -> Element msg
 video id =
     Element.html <|
         Html.video
-            [ src <| "http://files.fishgold.co.il/isl/videos/" ++ String.fromInt id ++ ".mp4"
+            [ src <| "http://files.fishgold.co.il/isl/videos/" ++ Dictionary.wordIdToString id ++ ".mp4"
             , controls True
             , autoplay True
             , Html.Attributes.attribute "muted" "true"
@@ -241,3 +255,16 @@ video id =
             , preload "auto"
             ]
             []
+
+
+description : Element msg
+description =
+    paragraph []
+        [ text "מבוסס על "
+        , link [ Font.underline ] { url = "http://isl.org.il/he/דף-הבית/", label = text "המילון הנהדר" }
+        , text " של "
+        , link [ Font.underline ] { url = "https://www.sela.org.il", label = text "המכון לקידום החרש" }
+        , text ". רוצים ללמוד שפת סימנים? אני ממליץ בחום על "
+        , link [ Font.underline ] { url = "https://www.sela.org.il/קורס-שפת-סימנים/", label = text "הקורסים שלהם" }
+        , text "."
+        ]

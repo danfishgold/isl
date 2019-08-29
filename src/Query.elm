@@ -1,4 +1,6 @@
-module Query exposing (Query, empty, fromList, isEmpty, removeLastBlock)
+module Query exposing (Query, addBlockAndResetText, empty, fromList, isEmpty, removeLastBlock)
+
+import Key exposing (Key)
 
 
 type alias Query block =
@@ -29,3 +31,8 @@ isEmpty query =
 removeLastBlock : Query block -> Query block
 removeLastBlock query =
     { query | blocksBefore = List.take (List.length query.blocksBefore - 1) query.blocksBefore }
+
+
+addBlockAndResetText : block -> Query block -> Query block
+addBlockAndResetText block q =
+    { text = "", blocksBefore = q.blocksBefore ++ [ block ] }

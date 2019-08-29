@@ -25,11 +25,11 @@ import Key exposing (Key)
 import Query exposing (Query)
 
 
-input : (Key -> msg) -> (String -> msg) -> String -> Element msg
-input onKey onChange queryText =
+input : (Key -> msg) -> (String -> msg) -> Maybe String -> String -> Element msg
+input onKey onChange placeholder queryText =
     Input.text
         [ htmlAttribute <|
-            Html.Events.on "keyup"
+            Html.Events.on "keydown"
                 (Decode.field "key"
                     (Decode.string
                         |> Decode.andThen Key.decoder
@@ -43,7 +43,7 @@ input onKey onChange queryText =
         ]
         { label = Input.labelHidden ""
         , onChange = onChange
-        , placeholder = Just (Input.placeholder [] <| text "לך חפש")
+        , placeholder = placeholder |> Maybe.map (text >> Input.placeholder [])
         , text = queryText
         }
 
@@ -62,6 +62,14 @@ block title =
 
 blockBar : (Key -> msg) -> (String -> msg) -> (block -> String) -> Query block -> Element msg
 blockBar onKey onChange blockToString query =
+    let
+        placeholder =
+            if List.isEmpty query.blocksBefore then
+                Just "לך חפש"
+
+            else
+                Nothing
+    in
     wrappedRow
         [ Border.solid
         , Border.width 2
@@ -70,6 +78,6 @@ blockBar onKey onChange blockToString query =
         ]
         (List.concat
             [ query.blocksBefore |> List.map (blockToString >> block)
-            , [ input onKey onChange query.text ]
+            , [ input onKey onChange placeholder query.text ]
             ]
         )
