@@ -2,6 +2,7 @@ module Util exposing (bytesDecodeList, listAt, maybeList, segmentedControl)
 
 import Bytes exposing (Bytes)
 import Bytes.Decode as BD
+import Colors
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -9,15 +10,15 @@ import Element.Font as Font
 import Element.Input as Input
 
 
-segmentedControl : (option -> msg) -> option -> List ( option, String ) -> Element msg
-segmentedControl onSelect selected options =
+segmentedControl : Colors.SegmentedControl -> (option -> msg) -> option -> List ( option, String ) -> Element msg
+segmentedControl colors onSelect selected options =
     let
         optionButton ( option, label ) =
             if option == selected then
                 Input.button
                     [ paddingXY 10 0
-                    , Background.color (rgb 1 0 0)
-                    , Font.color (rgb 1 1 1)
+                    , Background.color colors.selectedFill
+                    , Font.color colors.selectedText
                     , Border.rounded 5
                     ]
                     { label = text label
@@ -30,8 +31,8 @@ segmentedControl onSelect selected options =
                     [ paddingXY 10 0
                     , Border.rounded 5
                     , mouseOver
-                        [ Background.color (rgb 1 0.6 0.6)
-                        , Font.color (rgb 0 0 0)
+                        [ Background.color colors.hoverFill
+                        , Font.color colors.hoverText
                         ]
                     ]
                     { label = text label
@@ -44,7 +45,7 @@ segmentedControl onSelect selected options =
             [ spacing 5
             , padding 5
             , Border.rounded 5
-            , Background.color (rgb 0.9 0.9 0.9)
+            , Background.color colors.backgroundFill
             ]
 
 

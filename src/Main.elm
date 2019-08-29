@@ -4,6 +4,7 @@ import Array
 import BlockBar exposing (blockBar)
 import Browser
 import Browser.Navigation as Nav
+import Colors
 import Dictionary exposing (Dictionary, WordId)
 import Element exposing (..)
 import Element.Font as Font
@@ -64,6 +65,7 @@ type Msg
     | SelectSuggestion WordId
     | SetWordAtIndex Int WordId
     | SetSuggestionIndex Int
+    | RemoveBlockAtIndex Int
 
 
 
@@ -207,6 +209,9 @@ update msg model =
         SetSuggestionIndex idx ->
             ( { model | selectedSuggestion = Just idx }, Cmd.none )
 
+        RemoveBlockAtIndex idx ->
+            { model | query = Query.removeBlockAtIndex idx model.query } |> andPushUrl
+
 
 addWordToQueryAndReset : WordId -> Model -> ( Model, Cmd Msg )
 addWordToQueryAndReset word model =
@@ -261,23 +266,35 @@ view model =
                 [ Html.text "uh oh" ]
 
             Success dict ->
-                [ Element.layout
-                    [ Element.htmlAttribute (Html.Attributes.dir "ltr")
-                    , Font.family [ Font.typeface "arial", Font.sansSerif ]
-                    ]
-                  <|
-                    Element.column [ height fill ]
-                        [ blockBar InputKeyHit SetQueryText (Dictionary.title dict) model.query
-                        , el
-                            []
-                            (suggestions SelectSuggestion SetSuggestionIndex model.selectedSuggestion model.query)
-                        , if Query.hasBlocks model.query then
-                            PlaybackRate.control SetPlaybackRate model.playbackRate
+                [ Element.column [ height fill, width fill ]
+                    [ blockBar InputKeyHit
+                        SetQueryText
+                        RemoveBlockAtIndex
+                        (Dictionary.title dict)
+                        model.query
+                        [ width (fill |> maximum 600)
+                        , below <|
+                            suggestions SelectSuggestion
+                                SetSuggestionIndex
+                                model.selectedSuggestion
+                                model.query
+                                [ width fill
+                                , height (shrink |> maximum 200)
+                                , htmlAttribute (Html.Attributes.style "overflow" "scroll")
+                                ]
+                        ]
+                    , if Query.hasBlocks model.query then
+                        PlaybackRate.control SetPlaybackRate model.playbackRate
 
-                          else
-                            Element.none
-                        , videos dict (Query.blockList model.query)
-                        , description
+                      else
+                        Element.none
+                    , videos dict (Query.blockList model.query)
+                    , description
+                    ]
+                    |> Element.layout
+                        [ Element.htmlAttribute (Html.Attributes.dir "ltr")
+                        , Font.family [ Font.typeface "arial", Font.sansSerif ]
+                        , padding 20
                         ]
                 ]
     }
@@ -321,14 +338,14 @@ variationsControl dict wordIndex word =
                     :: group.variations
                     |> List.indexedMap (\idx opt -> ( opt, String.fromInt (idx + 1) ))
         in
-        segmentedControl (SetWordAtIndex wordIndex) word indexedOptions
+        segmentedControl Colors.variations (SetWordAtIndex wordIndex) word indexedOptions
 
 
 video : WordId -> Element msg
 video wordId =
     Element.html <|
         Html.video
-            [ src <| "http://files.fishgold.co.il/isl/videos/" ++ Dictionary.wordIdToString wordId ++ ".mp4"
+            [ src <| "https://files.fishgold.co.il/isl/videos/" ++ Dictionary.wordIdToString wordId ++ ".mp4"
             , controls True
             , autoplay True
             , Html.Attributes.attribute "muted" "true"

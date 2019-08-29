@@ -2,23 +2,14 @@ module BlockBar exposing (blockBar)
 
 -- import Element exposing (..)
 
-import Element
-    exposing
-        ( Element
-        , el
-        , focused
-        , htmlAttribute
-        , padding
-        , paddingXY
-        , rgb
-        , spacing
-        , text
-        , wrappedRow
-        )
+import Colors
+import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
+import Html.Attributes
 import Html.Events
 import Json.Decode as Decode
 import Key exposing (Key)
@@ -48,20 +39,25 @@ input onKey onChange placeholder queryText =
         }
 
 
-block : String -> Element msg
-block title =
+block : msg -> String -> Element msg
+block removeBlock title =
     el
-        [ Background.color (rgb 0.8 0 0)
+        [ Background.color Colors.block.fill
         , Border.rounded 5
         , paddingXY 10 5
-        , Font.color (rgb 1 1 1)
+        , Font.color Colors.block.text
         , Font.bold
+        , onClick removeBlock
+        , mouseOver
+            [ Background.color Colors.block.hoverFill
+            , Font.color Colors.block.hoverText
+            ]
         ]
         (text title)
 
 
-blockBar : (Key -> msg) -> (String -> msg) -> (block -> String) -> Query block -> Element msg
-blockBar onKey onChange blockToString query =
+blockBar : (Key -> msg) -> (String -> msg) -> (Int -> msg) -> (block -> String) -> Query block -> List (Element.Attribute msg) -> Element msg
+blockBar onKey onChange removeBlock blockToString query attrs =
     let
         placeholder =
             if Query.hasBlocks query then
@@ -71,13 +67,16 @@ blockBar onKey onChange blockToString query =
                 Just "לך חפש"
     in
     wrappedRow
-        [ Border.solid
-        , Border.width 2
-        , padding 5
-        , spacing 5
-        ]
+        ([ Border.solid
+         , Border.width 1
+         , Border.rounded 3
+         , padding 5
+         , spacing 5
+         ]
+            ++ attrs
+        )
         (List.concat
-            [ Query.blockList query |> List.map (blockToString >> block)
+            [ Query.blockList query |> List.indexedMap (\idx block_ -> block (removeBlock idx) (blockToString block_))
             , [ input onKey onChange placeholder (Query.text query) ]
             ]
         )

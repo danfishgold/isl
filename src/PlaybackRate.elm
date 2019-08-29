@@ -1,5 +1,6 @@
 port module PlaybackRate exposing (control, set, setDelayed)
 
+import Colors
 import Element exposing (..)
 import Process
 import Task
@@ -31,6 +32,6 @@ control toMsg currentRate =
     [ text "מהירות"
     , [ 0.5, 0.75, 1 ]
         |> List.map (\rate -> ( rate, "x" ++ String.fromFloat rate ))
-        |> segmentedControl toMsg currentRate
+        |> segmentedControl Colors.playbackRate toMsg currentRate
     ]
         |> row []
