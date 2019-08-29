@@ -1,34 +1,41 @@
-module Fuzzy exposing (filter)
+module Fuzzy exposing (Match, filter, textElement)
 
 import Element exposing (Element, el, paragraph)
 import Element.Font as Font
 
 
-filter : String -> (a -> String) -> List a -> List ( a, Element msg )
+type Match
+    = Match ( String, Int, Int )
+
+
+filter : String -> (a -> String) -> List a -> List ( a, Match )
 filter query itemString items =
     List.filterMap (match query itemString) items
-        |> List.sortBy Tuple.second
-        |> List.map
-            (\( item, matchIndex ) ->
-                ( item
-                , matchedTextElement (itemString item) matchIndex query
-                )
-            )
+        |> List.sortBy (\( _, match_ ) -> startIndex match_)
 
 
-match : String -> (a -> String) -> a -> Maybe ( a, Int )
+match : String -> (a -> String) -> a -> Maybe ( a, Match )
 match query itemString item =
-    itemString item
+    let
+        str =
+            itemString item
+    in
+    str
         |> String.indexes query
         |> List.head
-        |> Maybe.map (\idx -> ( item, idx ))
+        |> Maybe.map (\idx -> ( item, Match ( str, idx, String.length query ) ))
 
 
-matchedTextElement : String -> Int -> String -> Element msg
-matchedTextElement string startingIndex query =
+startIndex : Match -> Int
+startIndex (Match ( _, start, _ )) =
+    start
+
+
+textElement : Match -> Element msg
+textElement match_ =
     let
         ( before, during, after ) =
-            splitString (String.length query) startingIndex string
+            splitString match_
     in
     paragraph [ Element.width Element.shrink, Element.height Element.shrink ]
         [ Element.text before
@@ -37,8 +44,8 @@ matchedTextElement string startingIndex query =
         ]
 
 
-splitString : Int -> Int -> String -> ( String, String, String )
-splitString length idx string =
+splitString : Match -> ( String, String, String )
+splitString (Match ( string, idx, length )) =
     ( String.left idx string
     , String.slice idx (idx + length) string
     , String.dropLeft (idx + length) string

@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Array
 import BlockBar exposing (blockBar)
 import Browser
 import Browser.Navigation as Nav
@@ -7,7 +8,6 @@ import Dictionary exposing (Dictionary, WordId)
 import Element exposing (..)
 import Element.Font as Font
 import Element.Lazy exposing (lazy2)
-import Fuzzy
 import Html
 import Html.Attributes exposing (autoplay, controls, dir, preload, src)
 import Key exposing (Key)
@@ -17,7 +17,6 @@ import RemoteData exposing (RemoteData(..), WebData)
 import Route
 import Suggestions exposing (suggestions)
 import Url exposing (Url)
-import Util
 
 
 
@@ -111,7 +110,16 @@ update msg model =
         SetQueryText text ->
             let
                 newQuery =
-                    Query.setText text model.query
+                    case RemoteData.toMaybe model.dictionary of
+                        Nothing ->
+                            Query.setText [] (always "NO WORDS") text model.query
+
+                        Just dict ->
+                            Query.setText
+                                (Dictionary.primaryWordList dict)
+                                (Dictionary.title dict)
+                                text
+                                model.query
             in
             ( { model | query = newQuery }
             , Cmd.batch
@@ -140,20 +148,11 @@ update msg model =
                 Key.Enter ->
                     let
                         selectedWord =
-                            Maybe.map2 Util.listAt
+                            Maybe.map2 (\suggestions idx -> Array.get idx suggestions)
+                                (Query.suggestions model.query)
                                 model.selectedSuggestion
-                                (RemoteData.toMaybe model.dictionary
-                                    |> Maybe.map Dictionary.groupList
-                                    |> Maybe.map (Fuzzy.filter (Query.text model.query) Tuple.first)
-                                )
-                                |> Maybe.andThen
-                                    (identity
-                                        >> Maybe.map
-                                            (Tuple.first
-                                                >> Tuple.second
-                                                >> .primary
-                                            )
-                                    )
+                                |> Maybe.andThen identity
+                                |> Maybe.map Tuple.first
                     in
                     case selectedWord of
                         Nothing ->
@@ -183,7 +182,9 @@ addWordToQueryAndReset : WordId -> Model -> ( Model, Cmd Msg )
 addWordToQueryAndReset word model =
     let
         newQuery =
-            model.query |> Query.appendBlock word |> Query.setText ""
+            model.query
+                |> Query.appendBlock word
+                |> Query.clearText
     in
     ( { model | query = newQuery }
     , Route.push model.key (Route.VideoList (Query.blockList newQuery))
@@ -234,7 +235,7 @@ view model =
                   <|
                     Element.column [ height fill ]
                         [ blockBar InputKeyHit SetQueryText (Dictionary.title dict) model.query
-                        , suggestions SelectSuggestion dict (Query.text model.query)
+                        , suggestions SelectSuggestion model.query
                         , if Query.hasBlocks model.query then
                             PlaybackRate.control SetPlaybackRate model.playbackRate
 

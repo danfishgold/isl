@@ -1,4 +1,13 @@
-module Dictionary exposing (Dictionary, WordId, fetch, groupList, title, wordIdToString, wordIdsFromString)
+module Dictionary exposing
+    ( Dictionary
+    , WordId
+    , fetch
+    , groupList
+    , primaryWordList
+    , title
+    , wordIdToString
+    , wordIdsFromString
+    )
 
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
@@ -31,6 +40,11 @@ type WordId
 groupList : Dictionary -> List ( String, Group )
 groupList (Dictionary { groups }) =
     Dict.toList groups
+
+
+primaryWordList : Dictionary -> List WordId
+primaryWordList (Dictionary { groups }) =
+    Dict.values groups |> List.map .primary
 
 
 title : Dictionary -> WordId -> String
