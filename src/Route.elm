@@ -4,7 +4,6 @@ import Browser.Navigation as Nav
 import Dictionary exposing (WordId)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser)
-import Util exposing (maybeList)
 
 
 type Route

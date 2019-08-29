@@ -1,7 +1,6 @@
 port module PlaybackRate exposing (control, set, setDelayed)
 
 import Element exposing (..)
-import Element.Input as Input
 import Process
 import Task
 import Util exposing (segmentedControl)

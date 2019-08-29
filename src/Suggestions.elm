@@ -1,7 +1,7 @@
 module Suggestions exposing (suggestions)
 
 import Array
-import Dictionary exposing (Dictionary, WordId)
+import Dictionary exposing (WordId)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Events exposing (onClick, onMouseEnter)

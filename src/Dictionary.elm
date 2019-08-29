@@ -3,12 +3,10 @@ module Dictionary exposing
     , WordId
     , fetch
     , group
-    , groupList
     , primaryWordList
     , title
     , wordIdToString
     , wordIdsFromSlug
-    , wordIdsFromString
     , wordIdsToSlug
     )
 
@@ -44,11 +42,6 @@ type WordId
 -- ACCESS
 
 
-groupList : Dictionary -> List ( String, Group )
-groupList (Dictionary { groups }) =
-    Dict.toList groups
-
-
 primaryWordList : Dictionary -> List WordId
 primaryWordList (Dictionary { groups }) =
     Dict.values groups |> List.map .primary
@@ -63,11 +56,6 @@ group : Dictionary -> WordId -> Group
 group ((Dictionary { groups }) as dict) wordId =
     Dict.get (title dict wordId) groups
         |> Maybe.withDefault { primary = wordId, variations = [] }
-
-
-primaryWordForGroup : String -> Dictionary -> Maybe WordId
-primaryWordForGroup group_ (Dictionary { groups }) =
-    Dict.get group_ groups |> Maybe.map .primary
 
 
 
@@ -108,15 +96,6 @@ wordIdDecoder =
                     Nothing ->
                         Decode.fail "not an integer"
             )
-
-
-wordIdsFromString : String -> Maybe (List WordId)
-wordIdsFromString str =
-    str
-        |> String.split ","
-        |> List.map String.toInt
-        |> maybeList
-        |> Maybe.map (List.map WordId)
 
 
 wordIdToString : WordId -> String
