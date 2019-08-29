@@ -100,7 +100,7 @@ subscriptions _ =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case Debug.log "msg" msg of
+    case msg of
         UrlChanged url ->
             updateModelWithUrl url model
 
@@ -121,16 +121,7 @@ update msg model =
                                 text
                                 model.query
             in
-            ( { model | query = newQuery }
-            , Cmd.batch
-                [ Cmd.none --Route.push model.key (Route.VideoList ids)
-                , if Query.blocksChanged model.query newQuery then
-                    PlaybackRate.setDelayed SetPlaybackRate model.playbackRate
-
-                  else
-                    Cmd.none
-                ]
-            )
+            ( { model | query = newQuery }, Cmd.none )
 
         SetPlaybackRate rate ->
             ( { model | playbackRate = rate }, PlaybackRate.set rate )
@@ -163,7 +154,8 @@ update msg model =
 
                 Key.Backspace ->
                     if Query.isTextEmpty model.query then
-                        ( { model | query = Query.removeLastBlock model.query }, Cmd.none )
+                        { model | query = Query.removeLastBlock model.query }
+                            |> andPushUrl
 
                     else
                         ( model, Cmd.none )
@@ -186,9 +178,12 @@ addWordToQueryAndReset word model =
                 |> Query.appendBlock word
                 |> Query.clearText
     in
-    ( { model | query = newQuery }
-    , Route.push model.key (Route.VideoList (Query.blockList newQuery))
-    )
+    { model | query = newQuery } |> andPushUrl
+
+
+andPushUrl : Model -> ( Model, Cmd Msg )
+andPushUrl model =
+    ( model, Route.push model.key (Route.VideoList (Query.blockList model.query)) )
 
 
 updateModelWithUrl : Url -> Model -> ( Model, Cmd Msg )
