@@ -1,6 +1,8 @@
 module Fuzzy exposing (debugGrade, filter, filterItems, simpleFilterItems)
 
-import Html exposing (Html, b, span, text)
+import Element exposing (Element, el, paragraph)
+import Element.Font as Font
+import Html exposing (Html, b, span)
 import Regex
 import String
 
@@ -14,7 +16,7 @@ htmlHelper : String -> List Int -> List (Html msg) -> List (Html msg)
 htmlHelper string dists reversedElements =
     case dists of
         [] ->
-            List.reverse <| text string :: reversedElements
+            List.reverse <| Html.text string :: reversedElements
 
         dist :: rest ->
             let
@@ -24,7 +26,7 @@ htmlHelper string dists reversedElements =
             htmlHelper
                 after
                 rest
-                (b [] [ text char ] :: text before :: reversedElements)
+                (b [] [ Html.text char ] :: Html.text before :: reversedElements)
 
 
 splitString : Int -> Int -> String -> ( String, String, String )
@@ -117,14 +119,14 @@ debugGrade query word =
     match query identity word
 
 
-simpleFilterItems : String -> (a -> String) -> List a -> List ( a, Html msg )
+simpleFilterItems : String -> (a -> String) -> List a -> List ( a, Element msg )
 simpleFilterItems query itemString items =
     List.filterMap (simpleMatch query itemString) items
         |> List.sortBy Tuple.second
         |> List.map
             (\( item, matchIndex ) ->
                 ( item
-                , simpleHtml
+                , simpleElement
                     (itemString item)
                     matchIndex
                     query
@@ -147,7 +149,20 @@ simpleHtml string startingIndex query =
             splitString (String.length query) startingIndex string
     in
     span []
-        [ text before
-        , b [] [ text during ]
-        , text after
+        [ Html.text before
+        , b [] [ Html.text during ]
+        , Html.text after
+        ]
+
+
+simpleElement : String -> Int -> String -> Element msg
+simpleElement string startingIndex query =
+    let
+        ( before, during, after ) =
+            splitString (String.length query) startingIndex string
+    in
+    paragraph [ Element.width Element.shrink, Element.height Element.shrink ]
+        [ Element.text before
+        , el [ Font.bold ] (Element.text during)
+        , Element.text after
         ]

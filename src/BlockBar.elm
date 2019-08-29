@@ -1,86 +1,40 @@
 module BlockBar exposing (blockBar)
 
-import Dictionary exposing (Dictionary)
-import Element exposing (..)
+-- import Element exposing (..)
+
+import Element
+    exposing
+        ( Element
+        , el
+        , focused
+        , htmlAttribute
+        , padding
+        , paddingXY
+        , rgb
+        , spacing
+        , text
+        , wrappedRow
+        )
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Html.Attributes
 import Html.Events
-import Json.Decode as Decode exposing (Decoder)
+import Json.Decode as Decode
+import Key exposing (Key)
 import Query exposing (Query)
 
 
-keyDecoder : String -> Decoder KeyEvent
-keyDecoder key =
-    if key == "Enter" then
-        Decode.succeed Enter
-
-    else if key == "Backspace" then
-        Decode.succeed Backspace
-
-    else
-        Decode.fail "Not the enter key"
-
-
-type KeyEvent
-    = Enter
-    | Backspace
-    | Character String
-
-
-mapKeyEvent : msg -> (Query -> msg) -> Query -> KeyEvent -> msg
-mapKeyEvent onEnter onUpdatedQuery query keyEvent =
-    case keyEvent of
-        Enter ->
-            if String.isEmpty query.text then
-                onEnter
-
-            else
-                onUpdatedQuery
-                    { query
-                        | text = ""
-                        , blocksBefore = query.blocksBefore ++ [ query.text ]
-                    }
-
-        Backspace ->
-            if String.isEmpty query.text then
-                onUpdatedQuery { query | blocksBefore = removeLast query.blocksBefore }
-
-            else
-                onUpdatedQuery { query | text = removeLastChar query.text }
-
-        Character char ->
-            onUpdatedQuery { query | text = query.text ++ char }
-
-
-removeLast : List a -> List a
-removeLast xs =
-    List.take (List.length xs - 1) xs
-
-
-removeLastChar : String -> String
-removeLastChar str =
-    String.dropRight 1 str
-
-
-input : msg -> (Query -> msg) -> Query -> Element msg
-input onEnter onQueryUpdate query =
+input : (Key -> msg) -> (String -> msg) -> String -> Element msg
+input onKey onChange queryText =
     Input.text
         [ htmlAttribute <|
             Html.Events.on "keyup"
                 (Decode.field "key"
                     (Decode.string
-                        |> Decode.andThen keyDecoder
-                        |> Decode.map (mapKeyEvent onEnter onQueryUpdate query)
+                        |> Decode.andThen Key.decoder
+                        |> Decode.map onKey
                     )
-                )
-        , htmlAttribute <|
-            Html.Events.on "input"
-                (Decode.field "data" Decode.string
-                    |> Decode.map Character
-                    |> Decode.map (mapKeyEvent onEnter onQueryUpdate query)
                 )
         , Input.focusedOnLoad
         , Border.width 0
@@ -88,14 +42,9 @@ input onEnter onQueryUpdate query =
         , focused []
         ]
         { label = Input.labelHidden ""
-        , onChange = always onEnter
-        , placeholder =
-            if Query.isEmpty query then
-                Just (Input.placeholder [] <| text "לך חפש")
-
-            else
-                Nothing
-        , text = query.text
+        , onChange = onChange
+        , placeholder = Just (Input.placeholder [] <| text "לך חפש")
+        , text = queryText
         }
 
 
@@ -111,8 +60,8 @@ block title =
         (text title)
 
 
-blockBar : msg -> (Query -> msg) -> Query -> Element msg
-blockBar onEnter onQueryUpdate query =
+blockBar : (Key -> msg) -> (String -> msg) -> (block -> String) -> Query block -> Element msg
+blockBar onKey onChange blockToString query =
     wrappedRow
         [ Border.solid
         , Border.width 2
@@ -120,7 +69,7 @@ blockBar onEnter onQueryUpdate query =
         , spacing 5
         ]
         (List.concat
-            [ query.blocksBefore |> List.map block
-            , [ input onEnter onQueryUpdate query ]
+            [ query.blocksBefore |> List.map (blockToString >> block)
+            , [ input onKey onChange query.text ]
             ]
         )

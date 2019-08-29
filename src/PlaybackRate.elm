@@ -1,8 +1,7 @@
 port module PlaybackRate exposing (control, set, setDelayed)
 
-import Html exposing (Html, button, div, text)
-import Html.Attributes exposing (disabled)
-import Html.Events exposing (onClick)
+import Element exposing (..)
+import Element.Input as Input
 import Process
 import Task
 
@@ -27,18 +26,15 @@ set =
     setPlaybackRate
 
 
-control : (Float -> msg) -> Float -> Html msg
+control : (Float -> msg) -> Float -> Element msg
 control toMsg currentRate =
     let
         rateButton rate =
-            button
-                [ onClick <| toMsg rate
-                , disabled <| rate == currentRate
-                ]
-                [ text <| "x" ++ String.fromFloat rate ]
+            Input.button []
+                { onPress = Just (toMsg rate), label = Element.text <| "x" ++ String.fromFloat rate }
     in
     text "מהירות"
         :: ([ 0.5, 0.75, 1 ]
                 |> List.map rateButton
            )
-        |> div []
+        |> row []

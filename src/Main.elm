@@ -5,16 +5,17 @@ import Browser
 import Browser.Navigation as Nav
 import Dict
 import Dictionary exposing (Dictionary)
-import Element
+import Element exposing (Element)
 import Html exposing (Html, button, div, h2, text, video)
 import Html.Attributes exposing (autoplay, controls, dir, preload, src, style)
 import Html.Events exposing (onClick)
 import Html.Keyed exposing (node)
+import Key exposing (Key)
 import PlaybackRate
 import Query exposing (Query)
 import RemoteData exposing (RemoteData(..), WebData)
 import Route
-import SearchBar
+import Suggestions exposing (suggestions)
 import Url exposing (Url)
 
 
@@ -40,8 +41,7 @@ main =
 
 type alias Model =
     { dictionary : WebData Dictionary
-    , query : Query
-    , selectedWords : List String
+    , query : Query Int
     , playbackRate : Float
     , key : Nav.Key
     }
@@ -53,13 +53,11 @@ type alias Model =
 
 type Msg
     = SetDictionary (WebData Dictionary)
-    | SetQuery Query
-    | Search
-    | ShowWords (List String)
-    | RemoveWord Int
+    | SetQueryText String
     | SetPlaybackRate Float
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
+    | InputKeyHit Key
 
 
 
@@ -77,7 +75,6 @@ init () url key =
             updateModelWithUrl url
                 { dictionary = Loading
                 , query = Query.empty
-                , selectedWords = []
                 , playbackRate = 1
                 , key = key
                 }
@@ -107,32 +104,20 @@ update msg model =
         SetDictionary dictionary ->
             ( { model | dictionary = dictionary }, Cmd.none )
 
-        SetQuery q ->
-            ( { model | query = q }
-            , Cmd.none
-            )
-
-        Search ->
-            ( model, Cmd.none )
-
-        ShowWords ids ->
-            ( { model
-                | selectedWords = ids
-                , query = Query.empty
-              }
-            , Cmd.batch
-                [ PlaybackRate.setDelayed SetPlaybackRate model.playbackRate
-                , Route.push model.key (Route.VideoList ids)
-                ]
-            )
-
-        RemoveWord idx ->
+        SetQueryText text ->
             let
-                newIds =
-                    listRemove idx model.selectedWords
+                q =
+                    model.query
             in
-            ( { model | selectedWords = newIds }
-            , Route.push model.key (Route.VideoList newIds)
+            ( { model | query = { q | text = text } }
+            , Cmd.batch
+                [ Cmd.none --Route.push model.key (Route.VideoList ids)
+                , if model.query.blocksBefore /= q.blocksBefore then
+                    PlaybackRate.setDelayed SetPlaybackRate model.playbackRate
+
+                  else
+                    Cmd.none
+                ]
             )
 
         SetPlaybackRate rate ->
@@ -146,30 +131,33 @@ update msg model =
                 Browser.External href ->
                     ( model, Nav.load href )
 
+        InputKeyHit key ->
+            case key of
+                Key.Enter ->
+                    ( model, Cmd.none )
+
+                Key.Backspace ->
+                    ( model, Cmd.none )
+
+                Key.Up ->
+                    ( model, Cmd.none )
+
+                Key.Down ->
+                    ( model, Cmd.none )
+
 
 updateModelWithUrl : Url -> Model -> ( Model, Cmd Msg )
 updateModelWithUrl url model =
     case Route.parse url of
         Route.Home ->
-            ( { model
-                | query = Query.empty
-                , selectedWords = []
-              }
+            ( { model | query = Query.empty }
             , Cmd.none
             )
 
         Route.VideoList ids ->
-            ( { model
-                | query = Query.empty
-                , selectedWords = ids
-              }
+            ( { model | query = Query.fromList ids }
             , Cmd.none
             )
-
-
-listRemove : Int -> List a -> List a
-listRemove idx list =
-    List.take idx list ++ List.drop (idx + 1) list
 
 
 
@@ -180,9 +168,33 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "מילון שפת הסימנים"
     , body =
-        [ Element.layout [ Element.htmlAttribute (Html.Attributes.dir "rtl") ]
-            (blockBar Search SetQuery model.query)
-        ]
+        case model.dictionary of
+            NotAsked ->
+                []
+
+            Loading ->
+                []
+
+            Failure _ ->
+                [ text "fail" ]
+
+            Success dict ->
+                [ Element.layout [ Element.htmlAttribute (Html.Attributes.dir "rtl") ] <|
+                    Element.column []
+                        [ blockBar InputKeyHit SetQueryText (always "heyyy") model.query
+                        , suggestions dict model.query.text
+                        , if List.length model.query.blocksBefore > 0 then
+                            PlaybackRate.control SetPlaybackRate model.playbackRate
+
+                          else
+                            Element.none
+                        , model.query.blocksBefore
+                            |> List.filterMap (\k -> Dict.get k dict.words |> Maybe.map (\w -> ( k, w )))
+                            |> List.indexedMap (\idx ( id, word ) -> ( id, video id ))
+                            -- |> node "div" [ style "display" "flex", style "flex-wrap" "wrap" ]
+                            |> always (Element.text "video")
+                        ]
+                ]
     }
 
 
@@ -197,35 +209,31 @@ view model =
 --         Success dict ->
 --             div [ dir "rtl" ]
 --                 [ SearchBar.view
---                     SetQuery
+--                     SetQueryText
 --                     ShowWords
 --                     (\newIds -> ShowWords (model.selectedWords ++ newIds))
 --                     dict
 --                     model.query
---                 , if List.length model.selectedWords > 0 then
---                     PlaybackRate.control SetPlaybackRate model.playbackRate
---                   else
---                     text ""
---                 , model.selectedWords
---                     |> List.filterMap (\k -> Dict.get k dict.words |> Maybe.map (\w -> ( k, w )))
---                     |> List.indexedMap (\idx ( id, word ) -> ( id, video id word (RemoveWord idx) ))
---                     |> node "div" [ style "display" "flex", style "flex-wrap" "wrap" ]
---                 ]
+-- , if List.length model.selectedWords > 0 then
+--     PlaybackRate.control SetPlaybackRate model.playbackRate
+--   else
+--     text ""
+-- , model.selectedWords
+--     |> List.filterMap (\k -> Dict.get k dict.words |> Maybe.map (\w -> ( k, w )))
+--     |> List.indexedMap (\idx ( id, word ) -> ( id, video id word (RemoveWord idx) ))
+--     |> node "div" [ style "display" "flex", style "flex-wrap" "wrap" ]
+-- ]
 --         Failure _ ->
 --             div []
 --                 [ text "אוי לא! היתה שגיאת רשת"
 --                 ]
 
 
-video : String -> String -> msg -> Html msg
-video id word removeMsg =
-    div []
-        [ div [ style "display" "flex", style "align-items" "baseline" ]
-            [ h2 [] [ text word ]
-            , button [ onClick removeMsg ] [ text "מחק" ]
-            ]
-        , Html.video
-            [ src <| "http://files.fishgold.co.il/isl/videos/" ++ id ++ ".mp4"
+video : Int -> Element msg
+video id =
+    Element.html <|
+        Html.video
+            [ src <| "http://files.fishgold.co.il/isl/videos/" ++ String.fromInt id ++ ".mp4"
             , controls True
             , autoplay True
             , Html.Attributes.attribute "muted" "true"
@@ -233,4 +241,3 @@ video id word removeMsg =
             , preload "auto"
             ]
             []
-        ]
