@@ -7,6 +7,7 @@ import Dictionary exposing (Dictionary, WordId)
 import Element exposing (..)
 import Element.Font as Font
 import Element.Lazy exposing (lazy2)
+import Fuzzy
 import Html
 import Html.Attributes exposing (autoplay, controls, dir, preload, src)
 import Key exposing (Key)
@@ -16,6 +17,7 @@ import RemoteData exposing (RemoteData(..), WebData)
 import Route
 import Suggestions exposing (suggestions)
 import Url exposing (Url)
+import Util
 
 
 
@@ -41,7 +43,7 @@ main =
 type alias Model =
     { dictionary : WebData Dictionary
     , query : Query WordId
-    , selectedSuggestion : Maybe WordId
+    , selectedSuggestion : Maybe Int
     , playbackRate : Float
     , key : Nav.Key
     }
@@ -136,7 +138,24 @@ update msg model =
         InputKeyHit key ->
             case key of
                 Key.Enter ->
-                    case model.selectedSuggestion of
+                    let
+                        selectedWord =
+                            Maybe.map2 Util.listAt
+                                model.selectedSuggestion
+                                (RemoteData.toMaybe model.dictionary
+                                    |> Maybe.map Dictionary.groupList
+                                    |> Maybe.map (Fuzzy.filter model.query.text Tuple.first)
+                                )
+                                |> Maybe.andThen
+                                    (identity
+                                        >> Maybe.map
+                                            (Tuple.first
+                                                >> Tuple.second
+                                                >> .primary
+                                            )
+                                    )
+                    in
+                    case selectedWord of
                         Nothing ->
                             ( model, Cmd.none )
 
@@ -167,7 +186,7 @@ addWordToQueryAndReset word model =
             Query.addBlockAndResetText word model.query
     in
     ( { model | query = newQuery }
-    , Route.push model.key (Route.VideoList newQuery.blocksBefore)
+    , Route.push model.key (Route.VideoList (Query.blockList newQuery))
     )
 
 
@@ -213,15 +232,15 @@ view model =
                     , Font.family [ Font.typeface "arial", Font.sansSerif ]
                     ]
                   <|
-                    Element.column []
+                    Element.column [ height fill ]
                         [ blockBar InputKeyHit SetQueryText (Dictionary.title dict) model.query
                         , suggestions SelectSuggestion dict model.query.text
-                        , if List.length model.query.blocksBefore > 0 then
+                        , if Query.hasBlocks model.query then
                             PlaybackRate.control SetPlaybackRate model.playbackRate
 
                           else
                             Element.none
-                        , lazy2 videos dict model.query.blocksBefore
+                        , lazy2 videos dict (Query.blockList model.query)
                         , description
                         ]
                 ]
@@ -232,7 +251,7 @@ videos : Dictionary -> List WordId -> Element Msg
 videos dictionary words =
     words
         |> List.map (videoWrapper dictionary)
-        |> wrappedRow []
+        |> wrappedRow [ height fill ]
 
 
 videoWrapper : Dictionary -> WordId -> Element Msg

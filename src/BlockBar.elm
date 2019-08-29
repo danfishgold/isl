@@ -64,11 +64,11 @@ blockBar : (Key -> msg) -> (String -> msg) -> (block -> String) -> Query block -
 blockBar onKey onChange blockToString query =
     let
         placeholder =
-            if List.isEmpty query.blocksBefore then
-                Just "לך חפש"
+            if Query.hasBlocks query then
+                Nothing
 
             else
-                Nothing
+                Just "לך חפש"
     in
     wrappedRow
         [ Border.solid
@@ -77,7 +77,7 @@ blockBar onKey onChange blockToString query =
         , spacing 5
         ]
         (List.concat
-            [ query.blocksBefore |> List.map (blockToString >> block)
+            [ Query.blockList query |> List.map (blockToString >> block)
             , [ input onKey onChange placeholder query.text ]
             ]
         )

@@ -6,29 +6,26 @@ import Element.Font as Font
 
 filter : String -> (a -> String) -> List a -> List ( a, Element msg )
 filter query itemString items =
-    List.filterMap (simpleMatch query itemString) items
+    List.filterMap (match query itemString) items
         |> List.sortBy Tuple.second
         |> List.map
             (\( item, matchIndex ) ->
                 ( item
-                , simpleElement
-                    (itemString item)
-                    matchIndex
-                    query
+                , matchedTextElement (itemString item) matchIndex query
                 )
             )
 
 
-simpleMatch : String -> (a -> String) -> a -> Maybe ( a, Int )
-simpleMatch query itemString item =
+match : String -> (a -> String) -> a -> Maybe ( a, Int )
+match query itemString item =
     itemString item
         |> String.indexes query
         |> List.head
         |> Maybe.map (\idx -> ( item, idx ))
 
 
-simpleElement : String -> Int -> String -> Element msg
-simpleElement string startingIndex query =
+matchedTextElement : String -> Int -> String -> Element msg
+matchedTextElement string startingIndex query =
     let
         ( before, during, after ) =
             splitString (String.length query) startingIndex string
