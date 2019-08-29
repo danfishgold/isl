@@ -1,5 +1,7 @@
-module Util exposing (listAt, maybeList, segmentedControl)
+module Util exposing (bytesDecodeList, listAt, maybeList, segmentedControl)
 
+import Bytes exposing (Bytes)
+import Bytes.Decode as BD
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -62,3 +64,16 @@ maybeList xs =
 listAt : Int -> List a -> Maybe a
 listAt idx xs =
     xs |> List.drop idx |> List.head
+
+
+bytesDecodeList : Int -> BD.Decoder a -> Bytes -> Maybe (List a)
+bytesDecodeList count decoder bytes =
+    let
+        helper ( xs, n ) =
+            if n > 0 then
+                decoder |> BD.map (\x -> BD.Loop ( x :: xs, n - 1 ))
+
+            else
+                BD.succeed (BD.Done (List.reverse xs))
+    in
+    BD.decode (BD.loop ( [], count ) helper) bytes

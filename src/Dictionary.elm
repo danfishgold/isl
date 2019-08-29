@@ -7,14 +7,20 @@ module Dictionary exposing
     , primaryWordList
     , title
     , wordIdToString
+    , wordIdsFromSlug
     , wordIdsFromString
+    , wordIdsToSlug
     )
 
+import Base64
+import Bytes
+import Bytes.Decode as BD
+import Bytes.Encode as BE
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
 import RemoteData exposing (WebData)
 import RemoteData.Http
-import Util exposing (maybeList)
+import Util exposing (bytesDecodeList, maybeList)
 
 
 type Dictionary
@@ -137,3 +143,40 @@ intDictFromStringDict dict =
 
         Just coolDict ->
             Decode.succeed coolDict
+
+
+
+-- URL SLUGS
+
+
+wordIdBytesEncoder : WordId -> BE.Encoder
+wordIdBytesEncoder (WordId id) =
+    BE.unsignedInt16 Bytes.LE id
+
+
+wordIdBytesDecoder : BD.Decoder WordId
+wordIdBytesDecoder =
+    BD.unsignedInt16 Bytes.LE |> BD.map WordId
+
+
+wordIdsToSlug : List WordId -> String
+wordIdsToSlug wordIds =
+    wordIds
+        |> List.map wordIdBytesEncoder
+        |> BE.sequence
+        |> BE.encode
+        |> Base64.fromBytes
+        |> Maybe.withDefault ""
+        |> String.replace "=" ""
+
+
+wordIdsFromSlug : String -> Maybe (List WordId)
+wordIdsFromSlug slug =
+    Base64.toBytes slug
+        |> Maybe.andThen
+            (\bytes ->
+                bytesDecodeList
+                    (Bytes.width bytes // 2)
+                    wordIdBytesDecoder
+                    bytes
+            )

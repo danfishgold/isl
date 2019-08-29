@@ -30,7 +30,7 @@ fragmentParser frag =
             Home
 
         Just str ->
-            Dictionary.wordIdsFromString str
+            Dictionary.wordIdsFromSlug str
                 |> Maybe.map VideoList
                 |> Maybe.withDefault Home
 
@@ -42,7 +42,7 @@ toString route =
             "#"
 
         VideoList ids ->
-            "#" ++ String.join "," (List.map Dictionary.wordIdToString ids)
+            "#" ++ Dictionary.wordIdsToSlug ids
 
 
 push : Nav.Key -> Route -> Cmd msg
