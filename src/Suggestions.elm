@@ -4,13 +4,13 @@ import Array
 import Dictionary exposing (Dictionary, WordId)
 import Element exposing (..)
 import Element.Background as Background
-import Element.Events exposing (onClick)
+import Element.Events exposing (onClick, onMouseEnter)
 import Fuzzy
 import Query exposing (Query)
 
 
-suggestions : (WordId -> msg) -> Maybe Int -> Query WordId -> Element msg
-suggestions selectWord selectedIndex query =
+suggestions : (WordId -> msg) -> (Int -> msg) -> Maybe Int -> Query WordId -> Element msg
+suggestions selectWord setSelectedIndex selectedIndex query =
     case Query.suggestions query of
         Nothing ->
             Element.none
@@ -21,6 +21,7 @@ suggestions selectWord selectedIndex query =
                     (\idx ( word, match ) ->
                         el
                             [ onClick (selectWord word)
+                            , onMouseEnter (setSelectedIndex idx)
                             , width fill
                             , height shrink
                             , if selectedIndex == Just idx then

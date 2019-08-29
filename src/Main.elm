@@ -7,7 +7,7 @@ import Browser.Navigation as Nav
 import Dictionary exposing (Dictionary, WordId)
 import Element exposing (..)
 import Element.Font as Font
-import Element.Lazy exposing (lazy2)
+import Element.Lazy exposing (lazy)
 import Html
 import Html.Attributes exposing (autoplay, controls, dir, preload, src)
 import Key exposing (Key)
@@ -17,9 +17,11 @@ import RemoteData exposing (RemoteData(..), WebData)
 import Route
 import Suggestions exposing (suggestions)
 import Url exposing (Url)
+import Util exposing (segmentedControl)
 
 
 
+-- http://0.0.0.0:5500/#12837,4977,7509,7105,2773,3781,2837
 -- MAIN
 
 
@@ -60,6 +62,8 @@ type Msg
     | LinkClicked Browser.UrlRequest
     | InputKeyHit Key
     | SelectSuggestion WordId
+    | SetWordAtIndex Int WordId
+    | SetSuggestionIndex Int
 
 
 
@@ -197,6 +201,12 @@ update msg model =
         SelectSuggestion word ->
             addWordToQueryAndReset word model
 
+        SetWordAtIndex idx word ->
+            { model | query = Query.setBlockAtIndex idx word model.query } |> andPushUrl
+
+        SetSuggestionIndex idx ->
+            ( { model | selectedSuggestion = Just idx }, Cmd.none )
+
 
 addWordToQueryAndReset : WordId -> Model -> ( Model, Cmd Msg )
 addWordToQueryAndReset word model =
@@ -252,19 +262,21 @@ view model =
 
             Success dict ->
                 [ Element.layout
-                    [ Element.htmlAttribute (Html.Attributes.dir "rtl")
+                    [ Element.htmlAttribute (Html.Attributes.dir "ltr")
                     , Font.family [ Font.typeface "arial", Font.sansSerif ]
                     ]
                   <|
                     Element.column [ height fill ]
                         [ blockBar InputKeyHit SetQueryText (Dictionary.title dict) model.query
-                        , suggestions SelectSuggestion model.selectedSuggestion model.query
+                        , el
+                            []
+                            (suggestions SelectSuggestion SetSuggestionIndex model.selectedSuggestion model.query)
                         , if Query.hasBlocks model.query then
                             PlaybackRate.control SetPlaybackRate model.playbackRate
 
                           else
                             Element.none
-                        , lazy2 videos dict (Query.blockList model.query)
+                        , videos dict (Query.blockList model.query)
                         , description
                         ]
                 ]
@@ -274,23 +286,49 @@ view model =
 videos : Dictionary -> List WordId -> Element Msg
 videos dictionary words =
     words
-        |> List.map (videoWrapper dictionary)
+        |> List.indexedMap (\idx word -> videoWrapper dictionary idx word)
         |> wrappedRow [ height fill ]
 
 
-videoWrapper : Dictionary -> WordId -> Element Msg
-videoWrapper dict id =
+videoWrapper : Dictionary -> Int -> WordId -> Element Msg
+videoWrapper dict wordIndex word =
+    let
+        title =
+            Dictionary.title dict word
+    in
     column []
-        [ text (Dictionary.title dict id)
-        , video id
+        [ row [ spacing 20 ]
+            [ text title
+            , variationsControl dict wordIndex word
+            ]
+        , video word
         ]
 
 
+variationsControl : Dictionary -> Int -> WordId -> Element Msg
+variationsControl dict wordIndex word =
+    let
+        group =
+            Dictionary.group dict word
+    in
+    if List.isEmpty group.variations then
+        Element.none
+
+    else
+        let
+            indexedOptions =
+                group.primary
+                    :: group.variations
+                    |> List.indexedMap (\idx opt -> ( opt, String.fromInt (idx + 1) ))
+        in
+        segmentedControl (SetWordAtIndex wordIndex) word indexedOptions
+
+
 video : WordId -> Element msg
-video id =
+video wordId =
     Element.html <|
         Html.video
-            [ src <| "http://files.fishgold.co.il/isl/videos/" ++ Dictionary.wordIdToString id ++ ".mp4"
+            [ src <| "http://files.fishgold.co.il/isl/videos/" ++ Dictionary.wordIdToString wordId ++ ".mp4"
             , controls True
             , autoplay True
             , Html.Attributes.attribute "muted" "true"
@@ -304,7 +342,7 @@ description : Element msg
 description =
     paragraph []
         [ text "מבוסס על "
-        , link [ Font.underline ] { url = "http://isl.org.il/he/דף-הבית/", label = text "המילון הנהדר" }
+        , link [ Font.underline ] { url = "http://isl.org.il/he/דף-הבית/", label = text "המילון" }
         , text " של "
         , link [ Font.underline ] { url = "https://www.sela.org.il", label = text "המכון לקידום החרש" }
         , text ". רוצים ללמוד שפת סימנים? אני ממליץ בחום על "

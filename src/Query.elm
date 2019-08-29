@@ -11,6 +11,7 @@ module Query exposing
     , isTextEmpty
     , removeBlockAtIndex
     , removeLastBlock
+    , setBlockAtIndex
     , setText
     , suggestions
     , text
@@ -107,6 +108,11 @@ removeBlockAtIndex idx (Query q) =
                     (Array.slice 0 idx q.blocksBefore)
                     (Array.slice (idx + 1) (Array.length q.blocksBefore) q.blocksBefore)
         }
+
+
+setBlockAtIndex : Int -> block -> Query block -> Query block
+setBlockAtIndex idx block (Query q) =
+    Query { q | blocksBefore = Array.set (Debug.log "idx" idx) block q.blocksBefore }
 
 
 appendBlock : block -> Query block -> Query block

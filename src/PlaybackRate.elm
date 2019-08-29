@@ -4,6 +4,7 @@ import Element exposing (..)
 import Element.Input as Input
 import Process
 import Task
+import Util exposing (segmentedControl)
 
 
 port setPlaybackRate : Float -> Cmd msg
@@ -28,13 +29,9 @@ set =
 
 control : (Float -> msg) -> Float -> Element msg
 control toMsg currentRate =
-    let
-        rateButton rate =
-            Input.button []
-                { onPress = Just (toMsg rate), label = Element.text <| "x" ++ String.fromFloat rate }
-    in
-    text "מהירות"
-        :: ([ 0.5, 0.75, 1 ]
-                |> List.map rateButton
-           )
+    [ text "מהירות"
+    , [ 0.5, 0.75, 1 ]
+        |> List.map (\rate -> ( rate, "x" ++ String.fromFloat rate ))
+        |> segmentedControl toMsg currentRate
+    ]
         |> row []

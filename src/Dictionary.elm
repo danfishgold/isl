@@ -2,6 +2,7 @@ module Dictionary exposing
     ( Dictionary
     , WordId
     , fetch
+    , group
     , groupList
     , primaryWordList
     , title
@@ -52,9 +53,15 @@ title (Dictionary { words }) (WordId id) =
     Dict.get id words |> Maybe.withDefault "מילה לא מוכרת"
 
 
+group : Dictionary -> WordId -> Group
+group ((Dictionary { groups }) as dict) wordId =
+    Dict.get (title dict wordId) groups
+        |> Maybe.withDefault { primary = wordId, variations = [] }
+
+
 primaryWordForGroup : String -> Dictionary -> Maybe WordId
-primaryWordForGroup group (Dictionary { groups }) =
-    Dict.get group groups |> Maybe.map .primary
+primaryWordForGroup group_ (Dictionary { groups }) =
+    Dict.get group_ groups |> Maybe.map .primary
 
 
 
