@@ -64,7 +64,7 @@ group ((Dictionary { groups }) as dict) wordId =
 
 fetch : (WebData Dictionary -> msg) -> Cmd msg
 fetch toMsg =
-    RemoteData.Http.get "new_combined.json" toMsg decoder
+    RemoteData.Http.get "dictionary.json" toMsg decoder
 
 
 decoder : Decoder Dictionary

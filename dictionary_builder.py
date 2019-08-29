@@ -43,13 +43,13 @@ for (id, word) in words.items():
 #     content = json.dumps(combined, ensure_ascii=False, indent=2)
 #     f.write(content.encode('utf8'))
 
-new_combined = {
+dictionary = {
     'groups': word_groups,
     'words': {id: group for (group, ids) in word_groups.items() for id in ids}
 }
 
-with open('new_combined.json', 'w') as f:
-    content = json.dumps(new_combined, ensure_ascii=False, indent=2)
+with open('dictionary.json', 'w') as f:
+    content = json.dumps(dictionary, ensure_ascii=False, indent=2)
     f.write(content.encode('utf8'))
 
 
