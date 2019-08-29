@@ -121,7 +121,7 @@ update msg model =
                                 text
                                 model.query
             in
-            ( { model | query = newQuery }, Cmd.none )
+            ( { model | query = newQuery, selectedSuggestion = Nothing }, Cmd.none )
 
         SetPlaybackRate rate ->
             ( { model | playbackRate = rate }, PlaybackRate.set rate )
@@ -161,10 +161,38 @@ update msg model =
                         ( model, Cmd.none )
 
                 Key.Up ->
-                    ( model, Cmd.none )
+                    let
+                        suggestions =
+                            Query.suggestions model.query |> Maybe.withDefault Array.empty
+
+                        index =
+                            model.selectedSuggestion |> Maybe.withDefault 0
+
+                        newIndex =
+                            if Array.isEmpty suggestions then
+                                Nothing
+
+                            else
+                                Just (modBy (Array.length suggestions) (index - 1))
+                    in
+                    ( { model | selectedSuggestion = newIndex }, Cmd.none )
 
                 Key.Down ->
-                    ( model, Cmd.none )
+                    let
+                        suggestions =
+                            Query.suggestions model.query |> Maybe.withDefault Array.empty
+
+                        index =
+                            model.selectedSuggestion |> Maybe.withDefault (Array.length suggestions - 1)
+
+                        newIndex =
+                            if Array.isEmpty suggestions then
+                                Nothing
+
+                            else
+                                Just (modBy (Array.length suggestions) (index + 1))
+                    in
+                    ( { model | selectedSuggestion = newIndex }, Cmd.none )
 
         SelectSuggestion word ->
             addWordToQueryAndReset word model
@@ -230,7 +258,7 @@ view model =
                   <|
                     Element.column [ height fill ]
                         [ blockBar InputKeyHit SetQueryText (Dictionary.title dict) model.query
-                        , suggestions SelectSuggestion model.query
+                        , suggestions SelectSuggestion model.selectedSuggestion model.query
                         , if Query.hasBlocks model.query then
                             PlaybackRate.control SetPlaybackRate model.playbackRate
 

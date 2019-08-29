@@ -19,10 +19,10 @@ decoder key =
         "Backspace" ->
             Decode.succeed Backspace
 
-        "UpArrow" ->
+        "ArrowUp" ->
             Decode.succeed Up
 
-        "DownArrow" ->
+        "ArrowDown" ->
             Decode.succeed Down
 
         _ ->
