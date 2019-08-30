@@ -1,16 +1,16 @@
 module Main exposing (main)
 
 import Array
-import BlockBar exposing (blockBar)
+import BlockBar
 import Browser
 import Browser.Navigation as Nav
 import Colors
 import Dictionary exposing (Dictionary, WordId)
 import Element exposing (..)
+import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
-import Element.Lazy exposing (lazy)
 import Html
-import Html.Attributes exposing (autoplay, controls, dir, preload, src)
 import Key exposing (Key)
 import PlaybackRate
 import Query exposing (Query)
@@ -18,11 +18,11 @@ import RemoteData exposing (RemoteData(..), WebData)
 import Route
 import Suggestions exposing (suggestions)
 import Url exposing (Url)
-import Util exposing (segmentedControl)
+import Util exposing (dir, segmentedControl, style)
+import Video
 
 
 
--- http://0.0.0.0:5500/#12837,4977,7509,7105,2773,3781,2837
 -- MAIN
 
 
@@ -251,28 +251,51 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "מילון שפת הסימנים"
     , body =
-        case model.dictionary of
-            NotAsked ->
-                []
+        [ Element.layout
+            [ dir "rtl"
+            , Font.family [ Font.typeface "arial", Font.sansSerif ]
+            , padding 20
+            ]
+            (body model)
+        ]
+    }
 
-            Loading ->
-                []
 
-            Failure err ->
-                let
-                    _ =
-                        Debug.log "error" err
-                in
-                [ Html.text "uh oh" ]
+body : Model -> Element Msg
+body model =
+    case model.dictionary of
+        NotAsked ->
+            Element.none
 
-            Success dict ->
-                [ Element.column [ height fill, width fill ]
-                    [ blockBar InputKeyHit
+        Loading ->
+            Element.none
+
+        Failure err ->
+            let
+                _ =
+                    Debug.log "error" err
+            in
+            text "uh oh"
+
+        Success dict ->
+            column
+                [ width fill
+                , height fill
+                , spacing 50
+                ]
+                [ column
+                    [ width fill
+                    , height fill
+                    , spacing 20
+                    ]
+                    [ title
+                    , BlockBar.element InputKeyHit
                         SetQueryText
                         RemoveBlockAtIndex
                         (Dictionary.title dict)
                         model.query
                         [ width (fill |> maximum 600)
+                        , style "transition" ".2s"
                         , below <|
                             suggestions SelectSuggestion
                                 SetSuggestionIndex
@@ -280,7 +303,13 @@ view model =
                                 model.query
                                 [ width fill
                                 , height (shrink |> maximum 200)
-                                , htmlAttribute (Html.Attributes.style "overflow" "scroll")
+                                , style "overflow" "scroll"
+                                , Border.roundEach
+                                    { topLeft = 0
+                                    , topRight = 0
+                                    , bottomLeft = 5
+                                    , bottomRight = 5
+                                    }
                                 ]
                         ]
                     , if Query.hasBlocks model.query then
@@ -289,36 +318,44 @@ view model =
                       else
                         Element.none
                     , videos dict (Query.blockList model.query)
-                    , description
                     ]
-                    |> Element.layout
-                        [ Element.htmlAttribute (Html.Attributes.dir "ltr")
-                        , Font.family [ Font.typeface "arial", Font.sansSerif ]
-                        , padding 20
-                        ]
+                , description
                 ]
-    }
+
+
+title : Element msg
+title =
+    el
+        [ Background.color Colors.title.fill
+        , Font.color Colors.title.text
+        , Border.rounded 5
+        , Font.size 48
+        , Font.bold
+        , padding 10
+        , centerX
+        ]
+        (text "מילון שפת הסימנים")
 
 
 videos : Dictionary -> List WordId -> Element Msg
 videos dictionary words =
     words
         |> List.indexedMap (\idx word -> videoWrapper dictionary idx word)
-        |> wrappedRow [ height fill ]
+        |> wrappedRow [ height fill, width shrink, centerX, spacing 20 ]
 
 
 videoWrapper : Dictionary -> Int -> WordId -> Element Msg
 videoWrapper dict wordIndex word =
     let
-        title =
+        title_ =
             Dictionary.title dict word
     in
-    column []
-        [ row [ spacing 20 ]
-            [ text title
-            , variationsControl dict wordIndex word
+    column [ alignTop ]
+        [ row [ spacingXY 10 0, height (shrink |> minimum 50), dir "ltr" ]
+            [ variationsControl dict wordIndex word
+            , text title_
             ]
-        , video word
+        , Video.element word
         ]
 
 
@@ -339,20 +376,6 @@ variationsControl dict wordIndex word =
                     |> List.indexedMap (\idx opt -> ( opt, String.fromInt (idx + 1) ))
         in
         segmentedControl Colors.variations (SetWordAtIndex wordIndex) word indexedOptions
-
-
-video : WordId -> Element msg
-video wordId =
-    Element.html <|
-        Html.video
-            [ src <| "https://files.fishgold.co.il/isl/videos/" ++ Dictionary.wordIdToString wordId ++ ".mp4"
-            , controls True
-            , autoplay True
-            , Html.Attributes.attribute "muted" "true"
-            , Html.Attributes.attribute "playsinline" "true"
-            , preload "auto"
-            ]
-            []
 
 
 description : Element msg

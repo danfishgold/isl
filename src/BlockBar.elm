@@ -1,4 +1,4 @@
-module BlockBar exposing (blockBar)
+module BlockBar exposing (element)
 
 -- import Element exposing (..)
 
@@ -56,15 +56,22 @@ block removeBlock title =
         (text title)
 
 
-blockBar : (Key -> msg) -> (String -> msg) -> (Int -> msg) -> (block -> String) -> Query block -> List (Element.Attribute msg) -> Element msg
-blockBar onKey onChange removeBlock blockToString query attrs =
+element : (Key -> msg) -> (String -> msg) -> (Int -> msg) -> (block -> String) -> Query block -> List (Element.Attribute msg) -> Element msg
+element onKey onChange removeBlock blockToString query attrs =
     let
         placeholder =
-            if Query.hasBlocks query then
-                Nothing
+            case List.length (Query.blockList query) of
+                0 ->
+                    Just "חיפוש"
 
-            else
-                Just "לך חפש"
+                1 ->
+                    Just "הוסיפו עוד מילים כדי להרכיב משפט"
+
+                2 ->
+                    Just "הוסיפו עוד מילים כדי להרכיב משפט"
+
+                _ ->
+                    Nothing
     in
     wrappedRow
         ([ Border.solid

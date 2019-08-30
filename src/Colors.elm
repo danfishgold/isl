@@ -1,21 +1,76 @@
-module Colors exposing (SegmentedControl, block, playbackRate, suggestions, variations)
+module Colors exposing (SegmentedControl, block, playbackRate, suggestions, title, variations)
 
-import Element exposing (Color, rgb)
+import Element exposing (Color, rgb, rgb255)
+
+
+turquoise : Color
+turquoise =
+    rgb255 36 155 179
+
+
+darkTurtuiose : Color
+darkTurtuiose =
+    rgb255 15 130 153
+
+
+blue : Color
+blue =
+    rgb255 47 106 187
+
+
+darkBlue =
+    rgb255 24 82 161
+
+
+green : Color
+green =
+    rgb255 35 193 125
+
+
+darkGreen : Color
+darkGreen =
+    rgb255 13 168 102
+
+
+white : Color
+white =
+    rgb 1 1 1
+
+
+black : Color
+black =
+    rgb 0 0 0
+
+
+lightGray : Color
+lightGray =
+    rgb 0.9 0.9 0.9
+
+
+gray : Color
+gray =
+    rgb 0.8 0.8 0.8
 
 
 block =
-    { fill = rgb 1 0 0
-    , text = rgb 1 1 1
-    , hoverFill = rgb 0.9 0 0
-    , hoverText = rgb 1 1 1
+    { fill = green
+    , text = white
+    , hoverFill = darkGreen
+    , hoverText = white
+    }
+
+
+title =
+    { fill = blue
+    , text = white
     }
 
 
 suggestions =
-    { selectedFill = rgb 1 0 0
-    , selectedText = rgb 1 1 1
-    , unselectedFill = rgb 1 1 1
-    , unselectedText = rgb 0 0 0
+    { selectedFill = green
+    , selectedText = white
+    , unselectedFill = lightGray
+    , unselectedText = black
     }
 
 
@@ -30,19 +85,19 @@ type alias SegmentedControl =
 
 playbackRate : SegmentedControl
 playbackRate =
-    { selectedFill = rgb 1 0 0
-    , selectedText = rgb 1 1 1
-    , hoverFill = rgb 1 0.9 0.9
-    , hoverText = rgb 0 0 0
-    , backgroundFill = rgb 0.9 0.9 0.9
+    { selectedFill = blue
+    , selectedText = white
+    , hoverFill = gray
+    , hoverText = black
+    , backgroundFill = lightGray
     }
 
 
 variations : SegmentedControl
 variations =
-    { selectedFill = rgb 1 0 0
-    , selectedText = rgb 1 1 1
-    , hoverFill = rgb 1 0.9 0.9
-    , hoverText = rgb 0 0 0
-    , backgroundFill = rgb 0.9 0.9 0.9
+    { selectedFill = blue
+    , selectedText = white
+    , hoverFill = gray
+    , hoverText = black
+    , backgroundFill = lightGray
     }

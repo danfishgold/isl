@@ -1,4 +1,4 @@
-module Util exposing (bytesDecodeList, listAt, maybeList, segmentedControl)
+module Util exposing (bytesDecodeList, dir, listAt, maybeList, segmentedControl, style)
 
 import Bytes exposing (Bytes)
 import Bytes.Decode as BD
@@ -8,6 +8,17 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Html.Attributes
+
+
+style : String -> String -> Element.Attribute msg
+style attr val =
+    htmlAttribute (Html.Attributes.style attr val)
+
+
+dir : String -> Element.Attribute msg
+dir direction =
+    htmlAttribute (Html.Attributes.dir direction)
 
 
 segmentedControl : Colors.SegmentedControl -> (option -> msg) -> option -> List ( option, String ) -> Element msg
@@ -16,7 +27,7 @@ segmentedControl colors onSelect selected options =
         optionButton ( option, label ) =
             if option == selected then
                 Input.button
-                    [ paddingXY 10 0
+                    [ paddingXY 10 5
                     , Background.color colors.selectedFill
                     , Font.color colors.selectedText
                     , Border.rounded 5
@@ -28,7 +39,7 @@ segmentedControl colors onSelect selected options =
 
             else
                 Input.button
-                    [ paddingXY 10 0
+                    [ paddingXY 10 5
                     , Border.rounded 5
                     , mouseOver
                         [ Background.color colors.hoverFill
@@ -42,8 +53,8 @@ segmentedControl colors onSelect selected options =
     in
     List.map optionButton options
         |> row
-            [ spacing 5
-            , padding 5
+            [ spacing 3
+            , paddingXY 3 5
             , Border.rounded 5
             , Background.color colors.backgroundFill
             ]
