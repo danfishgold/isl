@@ -327,7 +327,7 @@ body model =
                             Element.none
                         ]
                     , if Query.isEmpty model.query then
-                        el [ normalWidth, centerX, paddingXY 0 50 ] examples
+                        el [ normalWidth, centerX, paddingXY 0 30 ] examples
 
                       else
                         videos dict (Query.blockList model.query)
@@ -363,7 +363,7 @@ title =
         , padding 10
         , centerX
         ]
-        { url = "#", label = text "מילון שפת הסימנים" }
+        { url = "#", label = paragraph [ Font.center ] [ text "מילון שפת הסימנים" ] }
 
 
 videos : Dictionary -> List WordId -> Element Msg
@@ -412,6 +412,7 @@ examples =
     column [ spacing 12 ]
         [ el
             [ paddingXY 7 5
+            , moveRight 7
             , Background.color Colors.examples.titleFill
             , Font.color Colors.examples.titleText
             , Border.rounded 5
@@ -428,9 +429,9 @@ examples =
                         [ Font.underline
                         , mouseOver [ Font.color Colors.examples.hoverText ]
                         ]
-                        { url = url, label = text phrase }
+                        { url = url, label = paragraph [] [ text phrase ] }
                 )
-            |> column [ paddingXY 7 0, spacing 7 ]
+            |> column [ spacing 7 ]
         ]
 
 

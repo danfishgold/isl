@@ -36,7 +36,7 @@ for (id, word) in words.items():
 
 # # Save word ids
 # with open('words.json', 'w') as f:
-#     json.dump(words, ensure_ascii=False, indent=None)
+#     json.dump(words, f, ensure_ascii=False, indent=None)
 
 # # Save combined data file
 # combined = {
@@ -44,7 +44,7 @@ for (id, word) in words.items():
 #     'groups': word_groups
 # }
 # with open('combined.json', 'w') as f:
-#     json.dump(combined, ensure_ascii=False, indent=2)
+#     json.dump(combined, f, ensure_ascii=False, indent=2)
 
 dictionary = {
     'groups': word_groups,
