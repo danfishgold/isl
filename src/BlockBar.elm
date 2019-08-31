@@ -9,7 +9,6 @@ import Element.Border as Border
 import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
-import Html.Attributes
 import Html.Events
 import Json.Decode as Decode
 import Key exposing (Key)
@@ -56,23 +55,8 @@ block removeBlock title =
         (text title)
 
 
-element : (Key -> msg) -> (String -> msg) -> (Int -> msg) -> (block -> String) -> Query block -> List (Element.Attribute msg) -> Element msg
-element onKey onChange removeBlock blockToString query attrs =
-    let
-        placeholder =
-            case List.length (Query.blockList query) of
-                0 ->
-                    Just "חיפוש"
-
-                1 ->
-                    Just "הוסיפו עוד מילים כדי להרכיב משפט"
-
-                2 ->
-                    Just "הוסיפו עוד מילים כדי להרכיב משפט"
-
-                _ ->
-                    Nothing
-    in
+element : (Key -> msg) -> (String -> msg) -> (Int -> msg) -> (block -> String) -> Query block -> Maybe String -> List (Element.Attribute msg) -> Element msg
+element onKey onChange removeBlock blockToString query placeholder attrs =
     wrappedRow
         ([ Border.solid
          , Border.width 1

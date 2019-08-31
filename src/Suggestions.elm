@@ -14,31 +14,57 @@ import Query exposing (Query)
 
 suggestions : (WordId -> msg) -> (Int -> msg) -> Maybe Int -> Query WordId -> List (Element.Attribute msg) -> Element msg
 suggestions selectWord setSelectedIndex selectedIndex query attrs =
-    case Query.suggestions query of
+    case Maybe.map Array.toList (Query.suggestions query) of
         Nothing ->
             Element.none
 
+        Just [] ->
+            row Nothing Nothing False (text "אין מילים שמתאימות לחיפוש שלך") attrs
+
         Just matches ->
-            Array.toList matches
+            matches
                 |> List.indexedMap
                     (\idx ( word, match ) ->
-                        el
-                            [ onClick (selectWord word)
-                            , onMouseEnter (setSelectedIndex idx)
-                            , width fill
-                            , height shrink
-                            , padding 5
-                            , if selectedIndex == Just idx then
-                                Background.color Colors.suggestions.selectedFill
-
-                              else
-                                Background.color Colors.suggestions.unselectedFill
-                            , if selectedIndex == Just idx then
-                                Font.color Colors.suggestions.selectedText
-
-                              else
-                                Font.color Colors.suggestions.unselectedText
-                            ]
+                        row (Just <| selectWord word)
+                            (Just <| setSelectedIndex idx)
+                            (selectedIndex == Just idx)
                             (Fuzzy.textElement match)
+                            []
                     )
                 |> column attrs
+
+
+row : Maybe msg -> Maybe msg -> Bool -> Element msg -> List (Element.Attribute msg) -> Element msg
+row maybeOnClick maybeOnHover isSelected content attrs =
+    let
+        props =
+            List.concat
+                [ [ width fill
+                  , height shrink
+                  , padding 5
+                  ]
+                , case maybeOnClick of
+                    Just onClick_ ->
+                        [ onClick onClick_ ]
+
+                    Nothing ->
+                        []
+                , case maybeOnHover of
+                    Just onHover ->
+                        [ onMouseEnter onHover ]
+
+                    Nothing ->
+                        []
+                , if isSelected then
+                    [ Background.color Colors.suggestions.selectedFill
+                    , Font.color Colors.suggestions.selectedText
+                    ]
+
+                  else
+                    [ Background.color Colors.suggestions.unselectedFill
+                    , Font.color Colors.suggestions.unselectedText
+                    ]
+                , attrs
+                ]
+    in
+    el props content

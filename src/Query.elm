@@ -112,7 +112,7 @@ removeBlockAtIndex idx (Query q) =
 
 setBlockAtIndex : Int -> block -> Query block -> Query block
 setBlockAtIndex idx block (Query q) =
-    Query { q | blocksBefore = Array.set (Debug.log "idx" idx) block q.blocksBefore }
+    Query { q | blocksBefore = Array.set idx block q.blocksBefore }
 
 
 appendBlock : block -> Query block -> Query block

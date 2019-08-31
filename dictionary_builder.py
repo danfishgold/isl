@@ -12,6 +12,11 @@ letters = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ',
 
 url = 'http://isl.org.il/wp-admin/admin-ajax.php'
 
+sanitize = {
+    'לחם (מוצר מזון) 1': 'לחם (מוצר מזון) (1)',
+    'לחם (מוצר מזון) 2': 'לחם (מוצר מזון) (2)',
+}
+
 # Get all words by searching for all the letters of the alphabet
 words = dict()
 for letter in letters:
@@ -21,7 +26,7 @@ for letter in letters:
     params = {'action': 'search_video', 'term': letter}
     r = requests.get(url, params=params)
     for pair in r.json():
-        words[pair['id']] = pair['value']
+        words[pair['id']] = sanitize.get(pair['value'], pair['value'])
 
 # Group all versions of the same word
 word_groups = dict()
@@ -31,8 +36,7 @@ for (id, word) in words.items():
 
 # # Save word ids
 # with open('words.json', 'w') as f:
-#     content = json.dumps(words, ensure_ascii=False, indent=None)
-#     f.write(content.encode('utf8'))
+#     json.dump(words, ensure_ascii=False, indent=None)
 
 # # Save combined data file
 # combined = {
@@ -40,8 +44,7 @@ for (id, word) in words.items():
 #     'groups': word_groups
 # }
 # with open('combined.json', 'w') as f:
-#     content = json.dumps(combined, ensure_ascii=False, indent=2)
-#     f.write(content.encode('utf8'))
+#     json.dump(combined, ensure_ascii=False, indent=2)
 
 dictionary = {
     'groups': word_groups,
@@ -49,8 +52,7 @@ dictionary = {
 }
 
 with open('dictionary.json', 'w') as f:
-    content = json.dumps(dictionary, ensure_ascii=False, indent=2)
-    f.write(content.encode('utf8'))
+    json.dump(dictionary, f, ensure_ascii=False, indent=2)
 
 
 # # Get the video urls for each word

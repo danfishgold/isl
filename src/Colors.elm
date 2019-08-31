@@ -1,6 +1,10 @@
-module Colors exposing (SegmentedControl, block, playbackRate, suggestions, title, variations)
+module Colors exposing (SegmentedControl, block, examples, playbackRate, suggestions, title, variations)
 
 import Element exposing (Color, rgb, rgb255)
+
+
+
+-- https://paletton.com/#uid=53m0j0kqbCbfSNBlkHdz8zOzwoU
 
 
 turquoise : Color
@@ -71,6 +75,7 @@ suggestions =
     , selectedText = white
     , unselectedFill = lightGray
     , unselectedText = black
+    , border = black
     }
 
 
@@ -100,4 +105,11 @@ variations =
     , hoverFill = gray
     , hoverText = black
     , backgroundFill = lightGray
+    }
+
+
+examples =
+    { titleFill = green
+    , titleText = white
+    , hoverText = darkGreen
     }

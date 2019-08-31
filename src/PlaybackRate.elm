@@ -4,7 +4,7 @@ import Colors
 import Element exposing (..)
 import Process
 import Task
-import Util exposing (segmentedControl)
+import Util exposing (dir, segmentedControl)
 
 
 port setPlaybackRate : Float -> Cmd msg
@@ -29,9 +29,9 @@ set =
 
 control : (Float -> msg) -> Float -> Element msg
 control toMsg currentRate =
-    [ text "מהירות"
-    , [ 0.5, 0.75, 1 ]
+    [ [ 0.5, 0.75, 1 ]
         |> List.map (\rate -> ( rate, "x" ++ String.fromFloat rate ))
         |> segmentedControl Colors.playbackRate toMsg currentRate
+    , text "מהירות"
     ]
-        |> row []
+        |> row [ dir "ltr", spacing 10 ]

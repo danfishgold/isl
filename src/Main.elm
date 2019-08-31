@@ -10,7 +10,6 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Html
 import Key exposing (Key)
 import PlaybackRate
 import Query exposing (Query)
@@ -278,6 +277,10 @@ body model =
             text "uh oh"
 
         Success dict ->
+            let
+                normalWidth =
+                    width (fill |> maximum 600)
+            in
             column
                 [ width fill
                 , height fill
@@ -289,43 +292,69 @@ body model =
                     , spacing 20
                     ]
                     [ title
-                    , BlockBar.element InputKeyHit
-                        SetQueryText
-                        RemoveBlockAtIndex
-                        (Dictionary.title dict)
-                        model.query
-                        [ width (fill |> maximum 600)
-                        , style "transition" ".2s"
-                        , below <|
-                            suggestions SelectSuggestion
-                                SetSuggestionIndex
-                                model.selectedSuggestion
-                                model.query
-                                [ width fill
-                                , height (shrink |> maximum 200)
-                                , style "overflow" "scroll"
-                                , Border.roundEach
-                                    { topLeft = 0
-                                    , topRight = 0
-                                    , bottomLeft = 5
-                                    , bottomRight = 5
-                                    }
-                                ]
+                    , column [ normalWidth, centerX, spacing 10 ]
+                        [ text "מה בא לך להגיד בשפת הסימנים?"
+                        , BlockBar.element InputKeyHit
+                            SetQueryText
+                            RemoveBlockAtIndex
+                            (Dictionary.title dict)
+                            model.query
+                            (placeholder model.query)
+                            [ width fill
+                            , below <|
+                                suggestions SelectSuggestion
+                                    SetSuggestionIndex
+                                    model.selectedSuggestion
+                                    model.query
+                                    [ width fill
+                                    , height (shrink |> maximum 200)
+                                    , style "overflow" "scroll"
+                                    , Border.roundEach
+                                        { topLeft = 0
+                                        , topRight = 0
+                                        , bottomLeft = 5
+                                        , bottomRight = 5
+                                        }
+                                    , Border.solid
+                                    , Border.color Colors.suggestions.border
+                                    , Border.width 1
+                                    ]
+                            ]
+                        , if Query.hasBlocks model.query then
+                            el [ alignRight ] (PlaybackRate.control SetPlaybackRate model.playbackRate)
+
+                          else
+                            Element.none
                         ]
-                    , if Query.hasBlocks model.query then
-                        PlaybackRate.control SetPlaybackRate model.playbackRate
+                    , if Query.isEmpty model.query then
+                        el [ normalWidth, centerX, paddingXY 0 50 ] examples
 
                       else
-                        Element.none
-                    , videos dict (Query.blockList model.query)
+                        videos dict (Query.blockList model.query)
                     ]
-                , description
+                , el [ normalWidth, centerX ] description
                 ]
+
+
+placeholder : Query block -> Maybe String
+placeholder query =
+    case List.length (Query.blockList query) of
+        0 ->
+            Just "חיפוש"
+
+        1 ->
+            Just "הוסיפו עוד מילים כדי להרכיב משפט"
+
+        2 ->
+            Just "הוסיפו עוד מילים כדי להרכיב משפט"
+
+        _ ->
+            Nothing
 
 
 title : Element msg
 title =
-    el
+    link
         [ Background.color Colors.title.fill
         , Font.color Colors.title.text
         , Border.rounded 5
@@ -334,7 +363,7 @@ title =
         , padding 10
         , centerX
         ]
-        (text "מילון שפת הסימנים")
+        { url = "#", label = text "מילון שפת הסימנים" }
 
 
 videos : Dictionary -> List WordId -> Element Msg
@@ -353,7 +382,7 @@ videoWrapper dict wordIndex word =
     column [ alignTop ]
         [ row [ spacingXY 10 0, height (shrink |> minimum 50), dir "ltr" ]
             [ variationsControl dict wordIndex word
-            , text title_
+            , el [ dir "rtl" ] (text title_)
             ]
         , Video.element word
         ]
@@ -378,6 +407,33 @@ variationsControl dict wordIndex word =
         segmentedControl Colors.variations (SetWordAtIndex wordIndex) word indexedOptions
 
 
+examples : Element Msg
+examples =
+    column [ spacing 12 ]
+        [ el
+            [ paddingXY 7 5
+            , Background.color Colors.examples.titleFill
+            , Font.color Colors.examples.titleText
+            , Border.rounded 5
+            , Font.bold
+            ]
+            (text "דוגמאות ממש טובות")
+        , [ ( "שלום! ברוכים הבאים למילון שפת הסימנים", "#LTKFKykj8Rc" )
+          , ( "איך קוראים לך?", "#JSgVC0Ed" )
+          , ( "איך אני מגיע לספריה?", "#0Qq9EKEvZR0" )
+          ]
+            |> List.map
+                (\( phrase, url ) ->
+                    link
+                        [ Font.underline
+                        , mouseOver [ Font.color Colors.examples.hoverText ]
+                        ]
+                        { url = url, label = text phrase }
+                )
+            |> column [ paddingXY 7 0, spacing 7 ]
+        ]
+
+
 description : Element msg
 description =
     paragraph []
@@ -385,7 +441,7 @@ description =
         , link [ Font.underline ] { url = "http://isl.org.il/he/דף-הבית/", label = text "המילון" }
         , text " של "
         , link [ Font.underline ] { url = "https://www.sela.org.il", label = text "המכון לקידום החרש" }
-        , text ". רוצים ללמוד שפת סימנים? אני ממליץ בחום על "
+        , text ". רוצים ללמוד לדבר בשפת הסימנים? אני ממליץ בחום על "
         , link [ Font.underline ] { url = "https://www.sela.org.il/קורס-שפת-סימנים/", label = text "הקורסים שלהם" }
         , text "."
         ]
