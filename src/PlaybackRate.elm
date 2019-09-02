@@ -2,9 +2,10 @@ port module PlaybackRate exposing (control, set, setDelayed)
 
 import Colors
 import Element exposing (..)
+import Localization as L10n exposing (Locale)
 import Process
 import Task
-import Util exposing (dir, segmentedControl)
+import Util exposing (segmentedControl)
 
 
 port setPlaybackRate : Float -> Cmd msg
@@ -27,11 +28,11 @@ set =
     setPlaybackRate
 
 
-control : (Float -> msg) -> Float -> Element msg
-control toMsg currentRate =
-    [ [ 0.5, 0.75, 1 ]
+control : Locale -> (Float -> msg) -> Float -> Element msg
+control locale toMsg currentRate =
+    [ text "מהירות"
+    , [ 0.5, 0.75, 1 ]
         |> List.map (\rate -> ( rate, "x" ++ String.fromFloat rate ))
         |> segmentedControl Colors.playbackRate toMsg currentRate
-    , text "מהירות"
     ]
-        |> row [ dir "ltr", spacing 10 ]
+        |> L10n.container locale row [ spacing 10 ]

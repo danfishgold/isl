@@ -9,17 +9,18 @@ import Element.Border as Border
 import Element.Events exposing (onClick, onMouseEnter)
 import Element.Font as Font
 import Fuzzy
+import Localization as L10n exposing (Locale)
 import Query exposing (Query)
 
 
-suggestions : (WordId -> msg) -> (Int -> msg) -> Maybe Int -> Query WordId -> List (Element.Attribute msg) -> Element msg
-suggestions selectWord setSelectedIndex selectedIndex query attrs =
+suggestions : Locale -> (WordId -> msg) -> (Int -> msg) -> Maybe Int -> Query WordId -> List (Element.Attribute msg) -> Element msg
+suggestions locale selectWord setSelectedIndex selectedIndex query attrs =
     case Maybe.map Array.toList (Query.suggestions query) of
         Nothing ->
             Element.none
 
         Just [] ->
-            row Nothing Nothing False (text "אין מילים שמתאימות לחיפוש שלך") attrs
+            row Nothing Nothing False (text <| L10n.string locale (.search >> .noResults)) attrs
 
         Just matches ->
             matches

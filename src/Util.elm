@@ -1,8 +1,9 @@
-module Util exposing (bytesDecodeList, dir, listAt, maybeList, segmentedControl, style)
+module Util exposing (bytesDecodeList, dictConcatMap, dictFilterMap, dir, listAt, maybeList, segmentedControl, style)
 
 import Bytes exposing (Bytes)
 import Bytes.Decode as BD
 import Colors
+import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -89,3 +90,23 @@ bytesDecodeList count decoder bytes =
                 BD.succeed (BD.Done (List.reverse xs))
     in
     BD.decode (BD.loop ( [], count ) helper) bytes
+
+
+dictFilterMap : (comparable -> v1 -> Maybe v2) -> Dict comparable v1 -> Dict comparable v2
+dictFilterMap map dict =
+    Dict.foldl (\key val newDict -> Dict.update key (always (map key val)) newDict) Dict.empty dict
+
+
+dictConcatMap : (comparable1 -> v -> Maybe comparable2) -> (v -> v -> v) -> Dict comparable1 v -> Dict comparable2 v
+dictConcatMap map mergeValues dict =
+    Dict.foldl
+        (\key val newDict ->
+            case map key val of
+                Nothing ->
+                    newDict
+
+                Just newKey ->
+                    Dict.update newKey (Maybe.map (mergeValues val) >> Maybe.withDefault val >> Just) newDict
+        )
+        Dict.empty
+        dict

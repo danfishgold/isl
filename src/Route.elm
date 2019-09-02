@@ -1,47 +1,53 @@
-module Route exposing (Route(..), parse, push, replace, toString)
+module Route exposing (Route(..), default, parse, push, replace, toString)
 
 import Browser.Navigation as Nav
 import Dictionary exposing (WordId)
+import Localization as L10n exposing (Locale(..))
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser)
 
 
 type Route
-    = Home
-    | VideoList (List WordId)
+    = VideoList Locale (List WordId)
 
 
-parse : Url -> Route
+default =
+    VideoList Hebrew []
+
+
+parse : Url -> Maybe Route
 parse url =
-    Parser.parse parser url
-        |> Maybe.withDefault Home
+    Parser.parse parser url |> Maybe.andThen identity
 
 
-parser : Parser (Route -> a) a
+parser : Parser (Maybe Route -> a) a
 parser =
     Parser.top </> Parser.fragment fragmentParser
 
 
-fragmentParser : Maybe String -> Route
+fragmentParser : Maybe String -> Maybe Route
 fragmentParser frag =
-    case frag of
-        Nothing ->
-            Home
+    case String.split "-" (Maybe.withDefault "" frag) of
+        [ localeString ] ->
+            L10n.localeFromString localeString |> Maybe.map (\locale -> VideoList locale [])
 
-        Just str ->
-            Dictionary.wordIdsFromSlug str
-                |> Maybe.map VideoList
-                |> Maybe.withDefault Home
+        [ localeString, encodedWordIds ] ->
+            Maybe.map2 VideoList
+                (L10n.localeFromString localeString)
+                (Dictionary.wordIdsFromSlug encodedWordIds)
+
+        _ ->
+            Nothing
 
 
 toString : Route -> String
 toString route =
     case route of
-        Home ->
-            "#"
+        VideoList locale [] ->
+            "#" ++ L10n.localeToString locale
 
-        VideoList ids ->
-            "#" ++ Dictionary.wordIdsToSlug ids
+        VideoList locale ids ->
+            "#" ++ L10n.localeToString locale ++ "-" ++ Dictionary.wordIdsToSlug ids
 
 
 push : Nav.Key -> Route -> Cmd msg

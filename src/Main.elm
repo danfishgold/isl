@@ -11,13 +11,14 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Key exposing (Key)
+import Localization as L10n exposing (Locale(..), Localized)
 import PlaybackRate
 import Query exposing (Query)
 import RemoteData exposing (RemoteData(..), WebData)
 import Route
 import Suggestions exposing (suggestions)
 import Url exposing (Url)
-import Util exposing (dir, segmentedControl, style)
+import Util exposing (segmentedControl, style)
 import Video
 
 
@@ -42,11 +43,12 @@ main =
 
 
 type alias Model =
-    { dictionary : WebData Dictionary
+    { dictionary : Localized (WebData Dictionary)
     , query : Query WordId
     , selectedSuggestion : Maybe Int
     , playbackRate : Float
     , key : Nav.Key
+    , locale : Locale
     }
 
 
@@ -55,7 +57,7 @@ type alias Model =
 
 
 type Msg
-    = SetDictionary (WebData Dictionary)
+    = SetDictionary Locale (WebData Dictionary)
     | SetQueryText String
     | SetPlaybackRate Float
     | UrlChanged Url
@@ -77,17 +79,14 @@ type alias Flags =
 
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init () url key =
-    let
-        ( model, pageCmd ) =
-            updateModelWithUrl url
-                { dictionary = Loading
-                , query = Query.empty
-                , selectedSuggestion = Nothing
-                , playbackRate = 1
-                , key = key
-                }
-    in
-    ( model, Cmd.batch [ pageCmd, Dictionary.fetch SetDictionary ] )
+    updateModelWithUrl url
+        { dictionary = { hebrew = Loading, english = NotAsked }
+        , query = Query.empty
+        , selectedSuggestion = Nothing
+        , playbackRate = 1
+        , key = key
+        , locale = Hebrew
+        }
 
 
 
@@ -109,20 +108,22 @@ update msg model =
         UrlChanged url ->
             updateModelWithUrl url model
 
-        SetDictionary dictionary ->
-            ( { model | dictionary = dictionary }, Cmd.none )
+        SetDictionary locale dictionary ->
+            ( { model | dictionary = L10n.set locale dictionary model.dictionary }
+            , Cmd.none
+            )
 
         SetQueryText text ->
             let
                 newQuery =
-                    case RemoteData.toMaybe model.dictionary of
+                    case getDictionary model |> RemoteData.toMaybe of
                         Nothing ->
                             Query.setText [] (always "NO WORDS") text model.query
 
                         Just dict ->
                             Query.setText
                                 (Dictionary.primaryWordList dict)
-                                (Dictionary.title dict)
+                                (Dictionary.title model.locale dict)
                                 text
                                 model.query
             in
@@ -225,21 +226,35 @@ addWordToQueryAndReset word model =
 
 andPushUrl : Model -> ( Model, Cmd Msg )
 andPushUrl model =
-    ( model, Route.push model.key (Route.VideoList (Query.blockList model.query)) )
+    ( model
+    , Route.push model.key
+        (Route.VideoList model.locale (Query.blockList model.query))
+    )
 
 
 updateModelWithUrl : Url -> Model -> ( Model, Cmd Msg )
 updateModelWithUrl url model =
     case Route.parse url of
-        Route.Home ->
-            ( { model | query = Query.empty }
-            , Cmd.none
+        Just (Route.VideoList locale ids) ->
+            let
+                newModel =
+                    { model | locale = locale, query = Query.fromList ids }
+            in
+            ( newModel
+            , if RemoteData.toMaybe (getDictionary newModel) == Nothing then
+                Dictionary.fetch newModel.locale (SetDictionary newModel.locale)
+
+              else
+                Cmd.none
             )
 
-        Route.VideoList ids ->
-            ( { model | query = Query.fromList ids }
-            , Cmd.none
-            )
+        Nothing ->
+            ( model, Route.push model.key Route.default )
+
+
+getDictionary : Model -> WebData Dictionary
+getDictionary model =
+    L10n.get model.locale model.dictionary
 
 
 
@@ -251,7 +266,7 @@ view model =
     { title = "מילון שפת הסימנים"
     , body =
         [ Element.layout
-            [ dir "rtl"
+            [ L10n.dir model.locale
             , Font.family [ Font.typeface "arial", Font.sansSerif ]
             , padding 20
             ]
@@ -262,19 +277,19 @@ view model =
 
 body : Model -> Element Msg
 body model =
-    case model.dictionary of
+    case getDictionary model of
         NotAsked ->
-            Element.none
+            text <| L10n.localeToString model.locale ++ " " ++ "not asked"
 
         Loading ->
-            Element.none
+            text <| L10n.localeToString model.locale ++ " " ++ "loading"
 
         Failure err ->
             let
                 _ =
                     Debug.log "error" err
             in
-            text "uh oh"
+            text <| L10n.localeToString model.locale ++ " " ++ "uh oh"
 
         Success dict ->
             let
@@ -286,23 +301,37 @@ body model =
                 , height fill
                 , spacing 50
                 ]
-                [ column
+                [ link [ Font.underline, mouseOver [ Font.color Colors.languageHover ] ]
+                    (case model.locale of
+                        Hebrew ->
+                            { label = text "English"
+                            , url =
+                                Route.toString (Route.VideoList English (Query.blockList model.query))
+                            }
+
+                        English ->
+                            { label = text "עברית"
+                            , url = Route.toString (Route.VideoList Hebrew (Query.blockList model.query))
+                            }
+                    )
+                , column
                     [ width fill
                     , height fill
                     , spacing 20
                     ]
-                    [ title
+                    [ title model.locale
                     , column [ normalWidth, centerX, spacing 10 ]
-                        [ text "מה בא לך להגיד בשפת הסימנים?"
+                        [ text (L10n.string model.locale (.search >> .prompt))
                         , BlockBar.element InputKeyHit
                             SetQueryText
                             RemoveBlockAtIndex
-                            (Dictionary.title dict)
+                            (Dictionary.title model.locale dict)
                             model.query
-                            (placeholder model.query)
+                            (L10n.string model.locale (.search >> .placeholder) <| List.length (Query.blockList model.query))
                             [ width fill
                             , below <|
-                                suggestions SelectSuggestion
+                                suggestions model.locale
+                                    SelectSuggestion
                                     SetSuggestionIndex
                                     model.selectedSuggestion
                                     model.query
@@ -321,39 +350,23 @@ body model =
                                     ]
                             ]
                         , if Query.hasBlocks model.query then
-                            el [ alignRight ] (PlaybackRate.control SetPlaybackRate model.playbackRate)
+                            el [ alignRight ] (PlaybackRate.control model.locale SetPlaybackRate model.playbackRate)
 
                           else
                             Element.none
                         ]
                     , if Query.isEmpty model.query then
-                        el [ normalWidth, centerX, paddingXY 0 30 ] examples
+                        el [ normalWidth, centerX, paddingXY 0 30 ] (examples model.locale)
 
                       else
-                        videos dict (Query.blockList model.query)
+                        videos model.locale dict (Query.blockList model.query)
                     ]
-                , el [ normalWidth, centerX ] description
+                , el [ normalWidth, centerX ] (L10n.get model.locale description)
                 ]
 
 
-placeholder : Query block -> Maybe String
-placeholder query =
-    case List.length (Query.blockList query) of
-        0 ->
-            Just "חיפוש"
-
-        1 ->
-            Just "הוסיפו עוד מילים כדי להרכיב משפט"
-
-        2 ->
-            Just "הוסיפו עוד מילים כדי להרכיב משפט"
-
-        _ ->
-            Nothing
-
-
-title : Element msg
-title =
+title : Locale -> Element msg
+title locale =
     link
         [ Background.color Colors.title.fill
         , Font.color Colors.title.text
@@ -363,36 +376,40 @@ title =
         , padding 10
         , centerX
         ]
-        { url = "#", label = paragraph [ Font.center ] [ text "מילון שפת הסימנים" ] }
+        { url = Route.toString (Route.VideoList locale [])
+        , label = paragraph [ Font.center ] [ text (L10n.string locale .title) ]
+        }
 
 
-videos : Dictionary -> List WordId -> Element Msg
-videos dictionary words =
+videos : Locale -> Dictionary -> List WordId -> Element Msg
+videos locale dictionary words =
     words
-        |> List.indexedMap (\idx word -> videoWrapper dictionary idx word)
+        |> List.indexedMap (\idx word -> videoWrapper locale dictionary idx word)
         |> wrappedRow [ height fill, width shrink, centerX, spacing 20 ]
 
 
-videoWrapper : Dictionary -> Int -> WordId -> Element Msg
-videoWrapper dict wordIndex word =
+videoWrapper : Locale -> Dictionary -> Int -> WordId -> Element Msg
+videoWrapper locale dict wordIndex word =
     let
         title_ =
-            Dictionary.title dict word
+            Dictionary.title locale dict word
     in
     column [ alignTop ]
-        [ row [ spacingXY 10 0, height (shrink |> minimum 50), dir "ltr" ]
-            [ variationsControl dict wordIndex word
-            , el [ dir "rtl" ] (text title_)
+        [ L10n.container locale
+            row
+            [ spacingXY 10 0, height (shrink |> minimum 50) ]
+            [ el [ L10n.dir locale ] (text title_)
+            , variationsControl locale dict wordIndex word
             ]
         , Video.element word
         ]
 
 
-variationsControl : Dictionary -> Int -> WordId -> Element Msg
-variationsControl dict wordIndex word =
+variationsControl : Locale -> Dictionary -> Int -> WordId -> Element Msg
+variationsControl locale dict wordIndex word =
     let
         group =
-            Dictionary.group dict word
+            Dictionary.group locale dict word
     in
     if List.isEmpty group.variations then
         Element.none
@@ -407,22 +424,23 @@ variationsControl dict wordIndex word =
         segmentedControl Colors.variations (SetWordAtIndex wordIndex) word indexedOptions
 
 
-examples : Element Msg
-examples =
+examples : Locale -> Element Msg
+examples locale =
     column [ spacing 12 ]
         [ el
             [ paddingXY 7 5
-            , moveRight 7
+            , if L10n.isLtr locale then
+                moveLeft 7
+
+              else
+                moveRight 7
             , Background.color Colors.examples.titleFill
             , Font.color Colors.examples.titleText
             , Border.rounded 5
             , Font.bold
             ]
-            (text "דוגמאות ממש טובות")
-        , [ ( "שלום! ברוכים הבאים למילון שפת הסימנים", "#LTKFKykj8Rc" )
-          , ( "איך קוראים לך?", "#JSgVC0Ed" )
-          , ( "איך אני מגיע לספריה?", "#0Qq9EKEvZR0" )
-          ]
+            (text <| L10n.string locale (.examples >> .title))
+        , L10n.string locale (.examples >> .list)
             |> List.map
                 (\( phrase, url ) ->
                     link
@@ -435,14 +453,26 @@ examples =
         ]
 
 
-description : Element msg
+description : Localized (Element msg)
 description =
-    paragraph []
-        [ text "מבוסס על "
-        , link [ Font.underline ] { url = "http://isl.org.il/he/דף-הבית/", label = text "המילון" }
-        , text " של "
-        , link [ Font.underline ] { url = "https://www.sela.org.il", label = text "המכון לקידום החרש" }
-        , text ". רוצים ללמוד לדבר בשפת הסימנים? אני ממליץ בחום על "
-        , link [ Font.underline ] { url = "https://www.sela.org.il/קורס-שפת-סימנים/", label = text "הקורסים שלהם" }
-        , text "."
-        ]
+    { hebrew =
+        paragraph []
+            [ text "מבוסס על "
+            , link [ Font.underline ] { url = "http://isl.org.il/he/דף-הבית/", label = text "המילון" }
+            , text " של "
+            , link [ Font.underline ] { url = "https://www.sela.org.il", label = text "המכון לקידום החרש" }
+            , text ". רוצים ללמוד לדבר בשפת הסימנים? אני ממליץ בחום על "
+            , link [ Font.underline ] { url = "https://www.sela.org.il/קורס-שפת-סימנים/", label = text "הקורסים שלהם" }
+            , text "."
+            ]
+    , english =
+        paragraph []
+            [ text "Based on "
+            , link [ Font.underline ] { url = "https://www.sela.org.il", label = text "SELA" }
+            , text "'s "
+            , link [ Font.underline ] { url = "http://isl.org.il/he/דף-הבית/", label = text "dictionary" }
+            , text ". If you want to learn ISL (and you live in Israel), I highly recommend their "
+            , link [ Font.underline ] { url = "https://www.sela.org.il/קורס-שפת-סימנים/", label = text "courses" }
+            , text "."
+            ]
+    }

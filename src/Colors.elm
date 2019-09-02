@@ -1,4 +1,4 @@
-module Colors exposing (SegmentedControl, block, examples, playbackRate, suggestions, title, variations)
+module Colors exposing (SegmentedControl, block, examples, languageHover, playbackRate, suggestions, title, variations)
 
 import Element exposing (Color, rgb, rgb255)
 
@@ -113,3 +113,7 @@ examples =
     , titleText = white
     , hoverText = darkGreen
     }
+
+
+languageHover =
+    darkBlue

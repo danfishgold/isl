@@ -16,7 +16,7 @@ import Bytes.Decode as BD
 import Bytes.Encode as BE
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
-import Localization exposing (Locale(..), Localized)
+import Localization as L10n exposing (Locale(..), Localized)
 import RemoteData exposing (WebData)
 import RemoteData.Http
 import Task exposing (Task)
@@ -49,15 +49,14 @@ primaryWordList (Dictionary { groups }) =
     Dict.values groups |> List.map .primary
 
 
-title : Dictionary -> WordId -> Maybe String
-title (Dictionary { words }) (WordId id) =
-    Dict.get id words
+title : Locale -> Dictionary -> WordId -> String
+title locale (Dictionary { words }) (WordId id) =
+    Dict.get id words |> Maybe.withDefault (L10n.string locale .unknownWord)
 
 
-group : Dictionary -> WordId -> Group
-group ((Dictionary { groups }) as dict) wordId =
-    title dict wordId
-        |> Maybe.andThen (\ttl -> Dict.get ttl groups)
+group : Locale -> Dictionary -> WordId -> Group
+group locale ((Dictionary { groups }) as dict) wordId =
+    Dict.get (title locale dict wordId) groups
         |> Maybe.withDefault { primary = wordId, variations = [] }
 
 
