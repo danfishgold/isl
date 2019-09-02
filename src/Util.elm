@@ -1,4 +1,14 @@
-module Util exposing (bytesDecodeList, dictConcatMap, dictFilterMap, dir, listAt, maybeList, segmentedControl, style)
+module Util exposing
+    ( bytesDecodeList
+    , dictConcatMap
+    , dictFilterMap
+    , dir
+    , id
+    , listAt
+    , maybeList
+    , segmentedControl
+    , style
+    )
 
 import Bytes exposing (Bytes)
 import Bytes.Decode as BD
@@ -20,6 +30,11 @@ style attr val =
 dir : String -> Element.Attribute msg
 dir direction =
     htmlAttribute (Html.Attributes.dir direction)
+
+
+id : String -> Element.Attribute msg
+id id_ =
+    htmlAttribute (Html.Attributes.id id_)
 
 
 segmentedControl : Colors.SegmentedControl -> (option -> msg) -> option -> List ( option, String ) -> Element msg

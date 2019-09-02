@@ -3,6 +3,7 @@ module Main exposing (main)
 import Array
 import BlockBar
 import Browser
+import Browser.Dom as Dom
 import Browser.Navigation as Nav
 import Colors
 import Dictionary exposing (Dictionary, WordId)
@@ -17,8 +18,9 @@ import Query exposing (Query)
 import RemoteData exposing (RemoteData(..), WebData)
 import Route
 import Suggestions exposing (suggestions)
+import Task
 import Url exposing (Url)
-import Util exposing (segmentedControl, style)
+import Util exposing (id, segmentedControl, style)
 import Video
 
 
@@ -65,6 +67,8 @@ type Msg
     | SelectSuggestion WordId
     | SetWordAtIndex Int WordId
     | RemoveWordAtIndex Int
+    | FocusError Dom.Error
+    | NoOp
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
 
@@ -149,8 +153,7 @@ update msg model =
 
                 Key.Backspace ->
                     if Query.isTextEmpty model.query then
-                        { model | query = Query.removeLastBlock model.query }
-                            |> andPushUrl
+                        updateQuery (Query.removeLastBlock model.query) ( model, Cmd.none )
 
                     else
                         ( model, Cmd.none )
@@ -196,10 +199,16 @@ update msg model =
             addWordToQueryAndReset word model
 
         SetWordAtIndex idx word ->
-            { model | query = Query.setBlockAtIndex idx word model.query } |> andPushUrl
+            updateQuery (Query.setBlockAtIndex idx word model.query) ( model, Cmd.none )
 
         RemoveWordAtIndex idx ->
-            { model | query = Query.removeBlockAtIndex idx model.query } |> andPushUrl
+            updateQuery (Query.removeBlockAtIndex idx model.query) ( model, Cmd.none )
+
+        FocusError error ->
+            ( model, Cmd.none )
+
+        NoOp ->
+            ( model, Cmd.none )
 
         UrlChanged url ->
             updateModelWithUrl url model
@@ -221,14 +230,27 @@ addWordToQueryAndReset word model =
                 |> Query.appendBlock word
                 |> Query.clearText
     in
-    { model | query = newQuery } |> andPushUrl
+    updateQuery newQuery ( model, Cmd.none )
 
 
-andPushUrl : Model -> ( Model, Cmd Msg )
-andPushUrl model =
-    ( model
-    , Route.push model.key
-        (Route.VideoList model.locale (Query.blockList model.query))
+updateQuery : Query WordId -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+updateQuery query ( model, cmd ) =
+    ( { model | query = query }
+    , Cmd.batch
+        [ cmd
+        , Route.push model.key
+            (Route.VideoList model.locale (Query.blockList query))
+        , Task.attempt
+            (\res ->
+                case res of
+                    Err error ->
+                        FocusError error
+
+                    Ok () ->
+                        NoOp
+            )
+            (Dom.focus "search-bar")
+        ]
     )
 
 
@@ -320,6 +342,7 @@ body model =
                                 (List.length (Query.blockList model.query))
                             )
                             [ width fill
+                            , id "search-bar"
                             , below <|
                                 suggestions model.locale
                                     SelectSuggestion
