@@ -16,9 +16,11 @@ import Bytes.Decode as BD
 import Bytes.Encode as BE
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
+import Localization exposing (Locale(..), Localized)
 import RemoteData exposing (WebData)
 import RemoteData.Http
-import Util exposing (bytesDecodeList, maybeList)
+import Task exposing (Task)
+import Util exposing (bytesDecodeList, dictConcatMap, dictFilterMap, maybeList)
 
 
 type Dictionary
@@ -47,14 +49,15 @@ primaryWordList (Dictionary { groups }) =
     Dict.values groups |> List.map .primary
 
 
-title : Dictionary -> WordId -> String
+title : Dictionary -> WordId -> Maybe String
 title (Dictionary { words }) (WordId id) =
-    Dict.get id words |> Maybe.withDefault "מילה לא מוכרת"
+    Dict.get id words
 
 
 group : Dictionary -> WordId -> Group
 group ((Dictionary { groups }) as dict) wordId =
-    Dict.get (title dict wordId) groups
+    title dict wordId
+        |> Maybe.andThen (\ttl -> Dict.get ttl groups)
         |> Maybe.withDefault { primary = wordId, variations = [] }
 
 
@@ -62,9 +65,39 @@ group ((Dictionary { groups }) as dict) wordId =
 -- DECODING
 
 
-fetch : (WebData Dictionary -> msg) -> Cmd msg
-fetch toMsg =
-    RemoteData.Http.get "dictionary.json" toMsg decoder
+fetch : Locale -> (WebData Dictionary -> msg) -> Cmd msg
+fetch locale toMsg =
+    case locale of
+        Hebrew ->
+            RemoteData.Http.get "dictionary.json" toMsg decoder
+
+        English ->
+            Task.map2 (RemoteData.map2 translateDictionary)
+                (RemoteData.Http.getTask "dictionary.json" decoder)
+                (RemoteData.Http.getTask "translation.json" translationDecoder)
+                |> Task.perform toMsg
+
+
+translationDecoder : Decoder (Dict String String)
+translationDecoder =
+    let
+        keyNotEmpty _ key =
+            not (String.isEmpty key)
+    in
+    Decode.dict Decode.string
+        |> Decode.map (Dict.filter keyNotEmpty)
+
+
+translateDictionary : Dictionary -> Dict String String -> Dictionary
+translateDictionary (Dictionary { words, groups }) translation =
+    Dictionary
+        { words = words |> dictFilterMap (\_ word -> Dict.get word translation)
+        , groups =
+            groups
+                |> dictConcatMap
+                    (\groupTitle _ -> Dict.get groupTitle translation)
+                    mergeGroups
+        }
 
 
 decoder : Decoder Dictionary
@@ -159,3 +192,14 @@ wordIdsFromSlug slug =
                     wordIdBytesDecoder
                     bytes
             )
+
+
+
+-- GROUPS
+
+
+mergeGroups : Group -> Group -> Group
+mergeGroups gr1 gr2 =
+    { primary = gr1.primary
+    , variations = gr2.primary :: gr1.variations ++ gr2.variations
+    }

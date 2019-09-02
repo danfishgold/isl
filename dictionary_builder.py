@@ -15,6 +15,7 @@ url = 'http://isl.org.il/wp-admin/admin-ajax.php'
 sanitize = {
     'לחם (מוצר מזון) 1': 'לחם (מוצר מזון) (1)',
     'לחם (מוצר מזון) 2': 'לחם (מוצר מזון) (2)',
+    'אימא': 'אמא',
 }
 
 # Get all words by searching for all the letters of the alphabet
@@ -33,18 +34,6 @@ word_groups = dict()
 for (id, word) in words.items():
     base_word = re.search(r'(.*?) *(\(\d+\))?$', word).group(1)
     word_groups[base_word] = word_groups.get(base_word, []) + [str(id)]
-
-# # Save word ids
-# with open('words.json', 'w') as f:
-#     json.dump(words, f, ensure_ascii=False, indent=None)
-
-# # Save combined data file
-# combined = {
-#     'words': words,
-#     'groups': word_groups
-# }
-# with open('combined.json', 'w') as f:
-#     json.dump(combined, f, ensure_ascii=False, indent=2)
 
 dictionary = {
     'groups': word_groups,
