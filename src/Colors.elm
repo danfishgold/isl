@@ -1,4 +1,4 @@
-module Colors exposing (SegmentedControl, block, examples, languageHover, playbackRate, suggestions, title, variations)
+module Colors exposing (SegmentedControl, block, examples, linkHover, playbackRate, suggestions, title, variations)
 
 import Element exposing (Color, rgb, rgb255)
 
@@ -115,5 +115,6 @@ examples =
     }
 
 
-languageHover =
+linkHover : Color
+linkHover =
     darkBlue

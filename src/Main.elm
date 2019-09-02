@@ -58,15 +58,15 @@ type alias Model =
 
 type Msg
     = SetDictionary Locale (WebData Dictionary)
-    | SetQueryText String
     | SetPlaybackRate Float
-    | UrlChanged Url
-    | LinkClicked Browser.UrlRequest
+    | SetQueryText String
     | InputKeyHit Key
+    | SetSuggestionIndex Int
     | SelectSuggestion WordId
     | SetWordAtIndex Int WordId
-    | SetSuggestionIndex Int
-    | RemoveBlockAtIndex Int
+    | RemoveWordAtIndex Int
+    | UrlChanged Url
+    | LinkClicked Browser.UrlRequest
 
 
 
@@ -105,13 +105,13 @@ subscriptions _ =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UrlChanged url ->
-            updateModelWithUrl url model
-
         SetDictionary locale dictionary ->
             ( { model | dictionary = L10n.set locale dictionary model.dictionary }
             , Cmd.none
             )
+
+        SetPlaybackRate rate ->
+            ( { model | playbackRate = rate }, PlaybackRate.set rate )
 
         SetQueryText text ->
             let
@@ -128,17 +128,6 @@ update msg model =
                                 model.query
             in
             ( { model | query = newQuery, selectedSuggestion = Nothing }, Cmd.none )
-
-        SetPlaybackRate rate ->
-            ( { model | playbackRate = rate }, PlaybackRate.set rate )
-
-        LinkClicked urlRequest ->
-            case urlRequest of
-                Browser.Internal url ->
-                    ( model, Nav.pushUrl model.key (Url.toString url) )
-
-                Browser.External href ->
-                    ( model, Nav.load href )
 
         InputKeyHit key ->
             case key of
@@ -200,17 +189,28 @@ update msg model =
                     in
                     ( { model | selectedSuggestion = newIndex }, Cmd.none )
 
+        SetSuggestionIndex idx ->
+            ( { model | selectedSuggestion = Just idx }, Cmd.none )
+
         SelectSuggestion word ->
             addWordToQueryAndReset word model
 
         SetWordAtIndex idx word ->
             { model | query = Query.setBlockAtIndex idx word model.query } |> andPushUrl
 
-        SetSuggestionIndex idx ->
-            ( { model | selectedSuggestion = Just idx }, Cmd.none )
-
-        RemoveBlockAtIndex idx ->
+        RemoveWordAtIndex idx ->
             { model | query = Query.removeBlockAtIndex idx model.query } |> andPushUrl
+
+        UrlChanged url ->
+            updateModelWithUrl url model
+
+        LinkClicked urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl model.key (Url.toString url) )
+
+                Browser.External href ->
+                    ( model, Nav.load href )
 
 
 addWordToQueryAndReset : WordId -> Model -> ( Model, Cmd Msg )
@@ -279,17 +279,17 @@ body : Model -> Element Msg
 body model =
     case getDictionary model of
         NotAsked ->
-            text <| L10n.localeToString model.locale ++ " " ++ "not asked"
+            text "not asked"
 
         Loading ->
-            text <| L10n.localeToString model.locale ++ " " ++ "loading"
+            text "loading"
 
         Failure err ->
             let
                 _ =
                     Debug.log "error" err
             in
-            text <| L10n.localeToString model.locale ++ " " ++ "uh oh"
+            text "uh oh"
 
         Success dict ->
             let
@@ -301,19 +301,7 @@ body model =
                 , height fill
                 , spacing 50
                 ]
-                [ link [ Font.underline, mouseOver [ Font.color Colors.languageHover ] ]
-                    (case model.locale of
-                        Hebrew ->
-                            { label = text "English"
-                            , url =
-                                Route.toString (Route.VideoList English (Query.blockList model.query))
-                            }
-
-                        English ->
-                            { label = text "עברית"
-                            , url = Route.toString (Route.VideoList Hebrew (Query.blockList model.query))
-                            }
-                    )
+                [ changeLocaleLink model
                 , column
                     [ width fill
                     , height fill
@@ -324,10 +312,13 @@ body model =
                         [ text (L10n.string model.locale (.search >> .prompt))
                         , BlockBar.element InputKeyHit
                             SetQueryText
-                            RemoveBlockAtIndex
+                            RemoveWordAtIndex
                             (Dictionary.title model.locale dict)
                             model.query
-                            (L10n.string model.locale (.search >> .placeholder) <| List.length (Query.blockList model.query))
+                            (L10n.string model.locale
+                                (.search >> .placeholder)
+                                (List.length (Query.blockList model.query))
+                            )
                             [ width fill
                             , below <|
                                 suggestions model.locale
@@ -361,13 +352,13 @@ body model =
                       else
                         videos model.locale dict (Query.blockList model.query)
                     ]
-                , el [ normalWidth, centerX ] (L10n.get model.locale description)
+                , el [ normalWidth, centerX ] (L10n.get model.locale footnote)
                 ]
 
 
 title : Locale -> Element msg
 title locale =
-    link
+    Element.link
         [ Background.color Colors.title.fill
         , Font.color Colors.title.text
         , Border.rounded 5
@@ -443,7 +434,7 @@ examples locale =
         , L10n.string locale (.examples >> .list)
             |> List.map
                 (\( phrase, url ) ->
-                    link
+                    Element.link
                         [ Font.underline
                         , mouseOver [ Font.color Colors.examples.hoverText ]
                         ]
@@ -453,26 +444,51 @@ examples locale =
         ]
 
 
-description : Localized (Element msg)
-description =
+footnote : Localized (Element msg)
+footnote =
     { hebrew =
         paragraph []
             [ text "מבוסס על "
-            , link [ Font.underline ] { url = "http://isl.org.il/he/דף-הבית/", label = text "המילון" }
+            , link { url = "http://isl.org.il/he/דף-הבית/", label = "המילון" }
             , text " של "
-            , link [ Font.underline ] { url = "https://www.sela.org.il", label = text "המכון לקידום החרש" }
+            , link { url = "https://www.sela.org.il", label = "המכון לקידום החרש" }
             , text ". רוצים ללמוד לדבר בשפת הסימנים? אני ממליץ בחום על "
-            , link [ Font.underline ] { url = "https://www.sela.org.il/קורס-שפת-סימנים/", label = text "הקורסים שלהם" }
+            , link { url = "https://www.sela.org.il/קורס-שפת-סימנים/", label = "הקורסים שלהם" }
             , text "."
             ]
     , english =
         paragraph []
             [ text "Based on "
-            , link [ Font.underline ] { url = "https://www.sela.org.il", label = text "SELA" }
+            , link { url = "https://www.sela.org.il", label = "SELA" }
             , text "'s "
-            , link [ Font.underline ] { url = "http://isl.org.il/he/דף-הבית/", label = text "dictionary" }
+            , link { url = "http://isl.org.il/he/דף-הבית/", label = "dictionary" }
             , text ". If you want to learn ISL (and you live in Israel), I highly recommend their "
-            , link [ Font.underline ] { url = "https://www.sela.org.il/קורס-שפת-סימנים/", label = text "courses" }
+            , link { url = "https://www.sela.org.il/קורס-שפת-סימנים/", label = "courses" }
             , text "."
             ]
     }
+
+
+link : { label : String, url : String } -> Element msg
+link { label, url } =
+    Element.link [ Font.underline, mouseOver [ Font.color Colors.linkHover ] ]
+        { url = url
+        , label = text label
+        }
+
+
+changeLocaleLink : Model -> Element msg
+changeLocaleLink model =
+    link
+        (case model.locale of
+            Hebrew ->
+                { label = "English"
+                , url =
+                    Route.toString (Route.VideoList English (Query.blockList model.query))
+                }
+
+            English ->
+                { label = "עברית"
+                , url = Route.toString (Route.VideoList Hebrew (Query.blockList model.query))
+                }
+        )
