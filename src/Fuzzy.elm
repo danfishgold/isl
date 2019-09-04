@@ -21,7 +21,8 @@ match query itemString item =
             itemString item
     in
     str
-        |> String.indexes query
+        |> String.toLower
+        |> String.indexes (String.toLower query)
         |> List.head
         |> Maybe.map (\idx -> ( item, Match ( str, idx, String.length query ) ))
 
