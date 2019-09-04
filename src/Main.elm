@@ -297,86 +297,94 @@ view model =
     }
 
 
-body : Model -> Element Msg
-body model =
+normalWidth =
+    width (fill |> maximum 600)
+
+
+mainBody : Model -> List (Element Msg)
+mainBody model =
     case getDictionary model of
         NotAsked ->
-            text "not asked"
+            [ text (L10n.string model.locale .loading) ]
 
         Loading ->
-            text "loading"
+            [ text (L10n.string model.locale .loading) ]
 
         Failure err ->
             let
                 _ =
                     Debug.log "error" err
             in
-            text "uh oh"
+            [ text (L10n.string model.locale .errorMessage) ]
 
         Success dict ->
-            let
-                normalWidth =
-                    width (fill |> maximum 600)
-            in
-            column
-                [ width fill
-                , height fill
-                , spacing 50
-                ]
-                [ changeLocaleLink model
-                , column
+            [ column [ normalWidth, centerX, spacing 10 ]
+                [ text (L10n.string model.locale (.search >> .prompt))
+                , BlockBar.element InputKeyHit
+                    SetQueryText
+                    RemoveWordAtIndex
+                    (Dictionary.title model.locale dict)
+                    model.query
+                    (L10n.string model.locale
+                        (.search >> .placeholder)
+                        (List.length (Query.blockList model.query))
+                    )
                     [ width fill
-                    , height fill
-                    , spacing 20
-                    ]
-                    [ title model.locale
-                    , column [ normalWidth, centerX, spacing 10 ]
-                        [ text (L10n.string model.locale (.search >> .prompt))
-                        , BlockBar.element InputKeyHit
-                            SetQueryText
-                            RemoveWordAtIndex
-                            (Dictionary.title model.locale dict)
+                    , id "search-bar"
+                    , below <|
+                        suggestions model.locale
+                            SelectSuggestion
+                            SetSuggestionIndex
+                            model.selectedSuggestion
                             model.query
-                            (L10n.string model.locale
-                                (.search >> .placeholder)
-                                (List.length (Query.blockList model.query))
-                            )
                             [ width fill
-                            , id "search-bar"
-                            , below <|
-                                suggestions model.locale
-                                    SelectSuggestion
-                                    SetSuggestionIndex
-                                    model.selectedSuggestion
-                                    model.query
-                                    [ width fill
-                                    , height (shrink |> maximum 200)
-                                    , style "overflow" "scroll"
-                                    , Border.roundEach
-                                        { topLeft = 0
-                                        , topRight = 0
-                                        , bottomLeft = 5
-                                        , bottomRight = 5
-                                        }
-                                    , Border.solid
-                                    , Border.color Colors.suggestions.border
-                                    , Border.width 1
-                                    ]
+                            , height (shrink |> maximum 200)
+                            , style "overflow" "scroll"
+                            , Border.roundEach
+                                { topLeft = 0
+                                , topRight = 0
+                                , bottomLeft = 5
+                                , bottomRight = 5
+                                }
+                            , Border.solid
+                            , Border.color Colors.suggestions.border
+                            , Border.width 1
                             ]
-                        , if Query.hasBlocks model.query then
-                            el [ alignRight ] (PlaybackRate.control model.locale SetPlaybackRate model.playbackRate)
-
-                          else
-                            Element.none
-                        ]
-                    , if Query.isEmpty model.query then
-                        el [ normalWidth, centerX, paddingXY 0 30 ] (examples model.locale)
-
-                      else
-                        videos model.locale dict (Query.blockList model.query)
                     ]
-                , el [ normalWidth, centerX ] (L10n.get model.locale footnote)
+                , if Query.hasBlocks model.query then
+                    el [ alignRight ] (PlaybackRate.control model.locale SetPlaybackRate model.playbackRate)
+
+                  else
+                    Element.none
                 ]
+            , if Query.isEmpty model.query then
+                el [ normalWidth, centerX, paddingXY 0 30 ] (examples model.locale)
+
+              else
+                videos model.locale dict (Query.blockList model.query)
+            ]
+
+
+body : Model -> Element Msg
+body model =
+    column
+        [ width fill
+        , height fill
+        , spacing 50
+        ]
+        [ changeLocaleLink model
+        , column
+            [ width fill
+            , height fill
+            , spacing 20
+            ]
+          <|
+            List.concat
+                [ [ title model.locale ]
+                , mainBody model
+                , [ el [ normalWidth, centerX ] (L10n.get model.locale footnote) ]
+                ]
+        ]
 
 
 title : Locale -> Element msg

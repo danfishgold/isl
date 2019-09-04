@@ -99,6 +99,8 @@ dir locale =
 
 type alias Strings =
     { title : String
+    , loading : String
+    , errorMessage : String
     , search :
         { prompt : String
         , placeholder : Int -> Maybe String
@@ -122,6 +124,8 @@ strings : Localized Strings
 strings =
     { hebrew =
         { title = "מילון שפת הסימנים"
+        , loading = "המילון נטען. אנא המתינו..."
+        , errorMessage = "אוי לא, היתה שגיאה! תנסו לטעון את העמוד מחדש"
         , search =
             { prompt = "מה בא לך להגיד בשפת הסימנים?"
             , placeholder = hebrewPlaceholder
@@ -140,6 +144,8 @@ strings =
         }
     , english =
         { title = "ISL Dictionary"
+        , loading = "Loading, please wait..."
+        , errorMessage = "Oh no, something went wrong! Please reload the page"
         , search =
             { prompt = "What do you want to say in ISL?"
             , placeholder = englishPlaceholder
