@@ -30,7 +30,7 @@ set =
 
 control : Locale -> (Float -> msg) -> Float -> Element msg
 control locale toMsg currentRate =
-    [ text "מהירות"
+    [ text (L10n.string locale .playbackRate)
     , [ 0.5, 0.75, 1 ]
         |> List.map (\rate -> ( rate, "x" ++ String.fromFloat rate ))
         |> segmentedControl Colors.playbackRate toMsg currentRate

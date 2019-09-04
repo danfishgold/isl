@@ -285,7 +285,7 @@ getDictionary model =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "מילון שפת הסימנים"
+    { title = L10n.string model.locale .title
     , body =
         [ Element.layout
             [ L10n.dir model.locale

@@ -109,6 +109,7 @@ type alias Strings =
         , list : List ( String, String )
         }
     , unknownWord : String
+    , playbackRate : String
     }
 
 
@@ -135,6 +136,7 @@ strings =
                 ]
             }
         , unknownWord = "מילה לא ידועה"
+        , playbackRate = "מהירות"
         }
     , english =
         { title = "ISL Dictionary"
@@ -152,6 +154,7 @@ strings =
                 ]
             }
         , unknownWord = "unknown word"
+        , playbackRate = "Playback rate"
         }
     }
 
