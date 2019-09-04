@@ -305,17 +305,17 @@ mainBody : Model -> List (Element Msg)
 mainBody model =
     case getDictionary model of
         NotAsked ->
-            [ text (L10n.string model.locale .loading) ]
+            [ el [ normalWidth, centerX ] <| text (L10n.string model.locale .loading) ]
 
         Loading ->
-            [ text (L10n.string model.locale .loading) ]
+            [ el [ normalWidth, centerX ] <| text (L10n.string model.locale .loading) ]
 
         Failure err ->
             let
                 _ =
                     Debug.log "error" err
             in
-            [ text (L10n.string model.locale .errorMessage) ]
+            [ el [ normalWidth, centerX ] <| text (L10n.string model.locale .errorMessage) ]
 
         Success dict ->
             [ column [ normalWidth, centerX, spacing 10 ]
@@ -378,12 +378,10 @@ body model =
             , height fill
             , spacing 20
             ]
-          <|
-            List.concat
-                [ [ title model.locale ]
-                , mainBody model
-                , [ el [ normalWidth, centerX ] (L10n.get model.locale footnote) ]
-                ]
+            [ title model.locale
+            , column [ width fill, height fill, spacing 20, alignTop ] (mainBody model)
+            , el [ normalWidth, centerX ] (L10n.get model.locale footnote)
+            ]
         ]
 
 
