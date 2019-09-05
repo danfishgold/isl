@@ -1,5 +1,6 @@
 module Util exposing
     ( bytesDecodeList
+    , delayTask
     , dictConcatMap
     , dictFilterMap
     , dir
@@ -20,6 +21,8 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Html.Attributes
+import Process
+import Task exposing (Task)
 
 
 style : String -> String -> Element.Attribute msg
@@ -125,3 +128,9 @@ dictConcatMap map mergeValues dict =
         )
         Dict.empty
         dict
+
+
+delayTask : Float -> Task x a -> Task x a
+delayTask delay task =
+    Process.sleep delay
+        |> Task.andThen (always task)

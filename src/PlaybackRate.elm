@@ -5,7 +5,7 @@ import Element exposing (..)
 import Localization as L10n exposing (Locale)
 import Process
 import Task
-import Util exposing (segmentedControl)
+import Util exposing (delayTask, segmentedControl)
 
 
 port setPlaybackRate : Float -> Cmd msg
@@ -18,8 +18,7 @@ so I need to add some delay.
 -}
 setDelayed : (Float -> msg) -> Float -> Cmd msg
 setDelayed toMsg rate =
-    Process.sleep (0.03 * 1000)
-        |> Task.andThen (always <| Task.succeed <| toMsg rate)
+    delayTask (0.03 * 1000) (Task.succeed <| toMsg rate)
         |> Task.perform identity
 
 

@@ -20,7 +20,7 @@ import Route
 import Suggestions exposing (suggestions)
 import Task
 import Url exposing (Url)
-import Util exposing (id, segmentedControl, style)
+import Util exposing (delayTask, id, segmentedControl, style)
 import Video
 
 
@@ -205,6 +205,10 @@ update msg model =
             updateQuery (Query.removeBlockAtIndex idx model.query) ( model, Cmd.none )
 
         FocusError error ->
+            let
+                _ =
+                    Debug.log "focus error" error
+            in
             ( model, Cmd.none )
 
         NoOp ->
@@ -240,16 +244,17 @@ updateQuery query ( model, cmd ) =
         [ cmd
         , Route.push model.key
             (Route.VideoList model.locale (Query.blockList query))
-        , Task.attempt
-            (\res ->
-                case res of
-                    Err error ->
-                        FocusError error
+        , Dom.focus "search-bar"
+            |> delayTask 30
+            |> Task.attempt
+                (\res ->
+                    case res of
+                        Err error ->
+                            FocusError error
 
-                    Ok () ->
-                        NoOp
-            )
-            (Dom.focus "search-bar")
+                        Ok () ->
+                            NoOp
+                )
         ]
     )
 
