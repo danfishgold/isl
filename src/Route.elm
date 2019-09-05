@@ -9,6 +9,7 @@ import Url.Parser as Parser exposing ((</>), Parser)
 
 type Route
     = VideoList Locale (List WordId)
+    | Slide Int
 
 
 default =
@@ -22,22 +23,30 @@ parse url =
 
 parser : Parser (Maybe Route -> a) a
 parser =
-    Parser.top </> Parser.fragment fragmentParser
+    Parser.top </> Parser.fragment (Maybe.withDefault "" >> fragmentParser)
 
 
-fragmentParser : Maybe String -> Maybe Route
+fragmentParser : String -> Maybe Route
 fragmentParser frag =
-    case String.split "-" (Maybe.withDefault "" frag) of
-        [ localeString ] ->
-            L10n.localeFromString localeString |> Maybe.map (\locale -> VideoList locale [])
+    if String.startsWith "slide" frag then
+        frag
+            |> String.dropLeft 5
+            |> String.toInt
+            |> Maybe.map (\n -> n - 1)
+            |> Maybe.map Slide
 
-        [ localeString, encodedWordIds ] ->
-            Maybe.map2 VideoList
-                (L10n.localeFromString localeString)
-                (Dictionary.wordIdsFromSlug encodedWordIds)
+    else
+        case String.split "-" frag of
+            [ localeString ] ->
+                L10n.localeFromString localeString |> Maybe.map (\locale -> VideoList locale [])
 
-        _ ->
-            Nothing
+            [ localeString, encodedWordIds ] ->
+                Maybe.map2 VideoList
+                    (L10n.localeFromString localeString)
+                    (Dictionary.wordIdsFromSlug encodedWordIds)
+
+            _ ->
+                Nothing
 
 
 toString : Route -> String
@@ -48,6 +57,9 @@ toString route =
 
         VideoList locale ids ->
             "#" ++ L10n.localeToString locale ++ "-" ++ Dictionary.wordIdsToSlug ids
+
+        Slide n ->
+            "#slide" ++ String.fromInt (n + 1)
 
 
 push : Nav.Key -> Route -> Cmd msg

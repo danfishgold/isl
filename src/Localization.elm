@@ -147,7 +147,7 @@ strings =
         , loading = "Loading, please wait..."
         , errorMessage = "Oh no, something went wrong! Please reload the page"
         , search =
-            { prompt = "What do you want to say in ISL?"
+            { prompt = "What do you want to say in Sign Language?"
             , placeholder = englishPlaceholder
             , noResults = "There are no words that match your search"
             }

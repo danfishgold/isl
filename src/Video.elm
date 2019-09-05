@@ -12,7 +12,7 @@ element wordId =
         Html.video
             [ src <| "https://files.fishgold.co.il/isl/videos/" ++ Dictionary.wordIdToString wordId ++ ".mp4"
             , controls True
-            , autoplay True
+            , autoplay False
             , attribute "muted" "true"
             , attribute "playsinline" "true"
             , preload "auto"

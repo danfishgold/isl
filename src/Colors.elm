@@ -1,4 +1,4 @@
-module Colors exposing (SegmentedControl, block, examples, linkHover, playbackRate, suggestions, title, variations)
+module Colors exposing (SegmentedControl, black, block, blue, darkBlue, darkGreen, examples, green, linkHover, playbackRate, suggestions, title, variations, white)
 
 import Element exposing (Color, rgb, rgb255)
 

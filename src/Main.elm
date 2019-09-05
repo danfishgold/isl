@@ -17,6 +17,7 @@ import PlaybackRate
 import Query exposing (Query)
 import RemoteData exposing (RemoteData(..), WebData)
 import Route
+import Slides
 import Suggestions exposing (suggestions)
 import Task
 import Url exposing (Url)
@@ -51,6 +52,8 @@ type alias Model =
     , playbackRate : Float
     , key : Nav.Key
     , locale : Locale
+    , slideNumber : Int
+    , slidesVisible : Bool
     }
 
 
@@ -69,6 +72,8 @@ type Msg
     | RemoveWordAtIndex Int
     | FocusError Dom.Error
     | NoOp
+    | SetSlideNumber Int
+    | SetSlidesVisible Bool
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
 
@@ -90,6 +95,8 @@ init () url key =
         , playbackRate = 1
         , key = key
         , locale = Hebrew
+        , slideNumber = 0
+        , slidesVisible = False
         }
 
 
@@ -214,6 +221,18 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
+        SetSlideNumber n ->
+            ( { model | slideNumber = n }
+            , if model.slidesVisible then
+                Route.push model.key (Route.Slide n)
+
+              else
+                Cmd.none
+            )
+
+        SetSlidesVisible visible ->
+            ( { model | slidesVisible = visible }, Route.push model.key (Route.Slide model.slideNumber) )
+
         UrlChanged url ->
             updateModelWithUrl url model
 
@@ -265,7 +284,11 @@ updateModelWithUrl url model =
         Just (Route.VideoList locale ids) ->
             let
                 newModel =
-                    { model | locale = locale, query = Query.fromList ids }
+                    { model
+                        | locale = locale
+                        , query = Query.fromList ids
+                        , slidesVisible = False
+                    }
             in
             ( newModel
             , if RemoteData.toMaybe (getDictionary newModel) == Nothing then
@@ -273,6 +296,11 @@ updateModelWithUrl url model =
 
               else
                 Cmd.none
+            )
+
+        Just (Route.Slide n) ->
+            ( { model | slidesVisible = True, slideNumber = n, locale = English }
+            , Cmd.none
             )
 
         Nothing ->
@@ -377,16 +405,20 @@ body model =
         , height fill
         , spacing 50
         ]
-        [ changeLocaleLink model
-        , column
-            [ width fill
-            , height fill
-            , spacing 20
-            ]
-            [ title model.locale
-            , column [ width fill, height fill, spacing 20, alignTop ] (mainBody model)
-            , el [ normalWidth, centerX ] (L10n.get model.locale footnote)
-            ]
+        [ navBar model
+        , if model.slidesVisible then
+            Slides.view SetSlideNumber model.slideNumber
+
+          else
+            column
+                [ width fill
+                , height fill
+                , spacing 20
+                ]
+                [ title model.locale
+                , column [ width fill, height fill, spacing 20, alignTop ] (mainBody model)
+                , el [ normalWidth, centerX ] (L10n.get model.locale footnote)
+                ]
         ]
 
 
@@ -511,18 +543,34 @@ link { label, url } =
         }
 
 
-changeLocaleLink : Model -> Element msg
-changeLocaleLink model =
-    link
-        (case model.locale of
-            Hebrew ->
-                { label = "English"
-                , url =
-                    Route.toString (Route.VideoList English (Query.blockList model.query))
+navBar : Model -> Element msg
+navBar model =
+    row [ spacing 10 ] <|
+        if model.slidesVisible then
+            [ link
+                { label = "Back"
+                , url = Route.toString (Route.VideoList English (Query.blockList model.query))
                 }
+            ]
 
-            English ->
-                { label = "עברית"
-                , url = Route.toString (Route.VideoList Hebrew (Query.blockList model.query))
-                }
-        )
+        else
+            case model.locale of
+                Hebrew ->
+                    [ link
+                        { label = "English"
+                        , url =
+                            Route.toString (Route.VideoList English (Query.blockList model.query))
+                        }
+                    ]
+
+                English ->
+                    [ link
+                        { label = "עברית"
+                        , url = Route.toString (Route.VideoList Hebrew (Query.blockList model.query))
+                        }
+
+                    -- , link
+                    --     { label = "Slides"
+                    --     , url = Route.toString (Route.Slide model.slideNumber)
+                    --     }
+                    ]
