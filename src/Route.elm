@@ -9,9 +9,9 @@ import Url.Parser as Parser exposing ((</>), Parser)
 
 type Route
     = VideoList Locale (List WordId)
-    | Slide Int
 
 
+default : Route
 default =
     VideoList Hebrew []
 
@@ -28,25 +28,17 @@ parser =
 
 fragmentParser : String -> Maybe Route
 fragmentParser frag =
-    if String.startsWith "slide" frag then
-        frag
-            |> String.dropLeft 5
-            |> String.toInt
-            |> Maybe.map (\n -> n - 1)
-            |> Maybe.map Slide
+    case String.split "-" frag of
+        [ localeString ] ->
+            L10n.localeFromString localeString |> Maybe.map (\locale -> VideoList locale [])
 
-    else
-        case String.split "-" frag of
-            [ localeString ] ->
-                L10n.localeFromString localeString |> Maybe.map (\locale -> VideoList locale [])
+        [ localeString, encodedWordIds ] ->
+            Maybe.map2 VideoList
+                (L10n.localeFromString localeString)
+                (Dictionary.wordIdsFromSlug encodedWordIds)
 
-            [ localeString, encodedWordIds ] ->
-                Maybe.map2 VideoList
-                    (L10n.localeFromString localeString)
-                    (Dictionary.wordIdsFromSlug encodedWordIds)
-
-            _ ->
-                Nothing
+        _ ->
+            Nothing
 
 
 toString : Route -> String
@@ -57,9 +49,6 @@ toString route =
 
         VideoList locale ids ->
             "#" ++ L10n.localeToString locale ++ "-" ++ Dictionary.wordIdsToSlug ids
-
-        Slide n ->
-            "#slide" ++ String.fromInt (n + 1)
 
 
 push : Nav.Key -> Route -> Cmd msg
