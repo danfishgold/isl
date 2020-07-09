@@ -16,10 +16,10 @@ import Bytes.Decode as BD
 import Bytes.Encode as BE
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
-import Localization as L10n exposing (Locale(..), Localized)
+import Localization as L10n exposing (Locale(..))
 import RemoteData exposing (WebData)
 import RemoteData.Http
-import Task exposing (Task)
+import Task
 import Util exposing (bytesDecodeList, dictConcatMap, dictFilterMap, maybeList)
 
 

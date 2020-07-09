@@ -22,6 +22,7 @@ blue =
     rgb255 47 106 187
 
 
+darkBlue : Color
 darkBlue =
     rgb255 24 82 161
 

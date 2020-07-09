@@ -5,7 +5,6 @@ import Colors
 import Dictionary exposing (WordId)
 import Element exposing (..)
 import Element.Background as Background
-import Element.Border as Border
 import Element.Events exposing (onClick, onMouseEnter)
 import Element.Font as Font
 import Fuzzy

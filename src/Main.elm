@@ -305,6 +305,7 @@ view model =
     }
 
 
+normalWidth : Attribute msg
 normalWidth =
     width (fill |> maximum 600)
 

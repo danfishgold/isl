@@ -3,7 +3,6 @@ port module PlaybackRate exposing (control, set, setDelayed)
 import Colors
 import Element exposing (..)
 import Localization as L10n exposing (Locale)
-import Process
 import Task
 import Util exposing (delayTask, segmentedControl)
 
