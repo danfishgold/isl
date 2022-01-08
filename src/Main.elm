@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import About
 import Array
 import BlockBar
 import Browser
@@ -51,6 +52,7 @@ type alias Model =
     , playbackRate : Float
     , key : Nav.Key
     , locale : Locale
+    , inAbout : Bool
     }
 
 
@@ -90,6 +92,7 @@ init () url key =
         , playbackRate = 1
         , key = key
         , locale = Hebrew
+        , inAbout = False
         }
 
 
@@ -108,7 +111,7 @@ subscriptions _ =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
+    case Debug.log "msg" msg of
         SetDictionary locale dictionary ->
             ( { model | dictionary = L10n.set locale dictionary model.dictionary }
             , Cmd.none
@@ -268,6 +271,7 @@ updateModelWithUrl url model =
                     { model
                         | locale = locale
                         , query = Query.fromList ids
+                        , inAbout = False
                     }
             in
             ( newModel
@@ -277,6 +281,9 @@ updateModelWithUrl url model =
               else
                 Cmd.none
             )
+
+        Just Route.About ->
+            ( { model | inAbout = True, locale = Hebrew }, Cmd.none )
 
         Nothing ->
             ( model, Route.push model.key Route.default )
@@ -312,66 +319,70 @@ normalWidth =
 
 mainBody : Model -> List (Element Msg)
 mainBody model =
-    case getDictionary model of
-        NotAsked ->
-            [ el [ normalWidth, centerX ] <| text (L10n.string model.locale .loading) ]
+    if model.inAbout then
+        About.view
 
-        Loading ->
-            [ el [ normalWidth, centerX ] <| text (L10n.string model.locale .loading) ]
+    else
+        case getDictionary model of
+            NotAsked ->
+                [ el [ normalWidth, centerX ] <| text (L10n.string model.locale .loading) ]
 
-        Failure err ->
-            let
-                _ =
-                    Debug.log "error" err
-            in
-            [ el [ normalWidth, centerX ] <| text (L10n.string model.locale .errorMessage) ]
+            Loading ->
+                [ el [ normalWidth, centerX ] <| text (L10n.string model.locale .loading) ]
 
-        Success dict ->
-            [ column [ normalWidth, centerX, spacing 10 ]
-                [ text (L10n.string model.locale (.search >> .prompt))
-                , BlockBar.element InputKeyHit
-                    SetQueryText
-                    RemoveWordAtIndex
-                    (Dictionary.title model.locale dict)
-                    model.query
-                    (L10n.string model.locale
-                        (.search >> .placeholder)
-                        (List.length (Query.blockList model.query))
-                    )
-                    [ width fill
-                    , id "search-bar"
-                    , below <|
-                        suggestions model.locale
-                            SelectSuggestion
-                            SetSuggestionIndex
-                            model.selectedSuggestion
-                            model.query
-                            [ width fill
-                            , height (shrink |> maximum 200)
-                            , style "overflow" "scroll"
-                            , Border.roundEach
-                                { topLeft = 0
-                                , topRight = 0
-                                , bottomLeft = 5
-                                , bottomRight = 5
-                                }
-                            , Border.solid
-                            , Border.color Colors.suggestions.border
-                            , Border.width 1
-                            ]
+            Failure err ->
+                let
+                    _ =
+                        Debug.log "error" err
+                in
+                [ el [ normalWidth, centerX ] <| text (L10n.string model.locale .errorMessage) ]
+
+            Success dict ->
+                [ column [ normalWidth, centerX, spacing 10 ]
+                    [ text (L10n.string model.locale (.search >> .prompt))
+                    , BlockBar.element InputKeyHit
+                        SetQueryText
+                        RemoveWordAtIndex
+                        (Dictionary.title model.locale dict)
+                        model.query
+                        (L10n.string model.locale
+                            (.search >> .placeholder)
+                            (List.length (Query.blockList model.query))
+                        )
+                        [ width fill
+                        , id "search-bar"
+                        , below <|
+                            suggestions model.locale
+                                SelectSuggestion
+                                SetSuggestionIndex
+                                model.selectedSuggestion
+                                model.query
+                                [ width fill
+                                , height (shrink |> maximum 200)
+                                , style "overflow" "scroll"
+                                , Border.roundEach
+                                    { topLeft = 0
+                                    , topRight = 0
+                                    , bottomLeft = 5
+                                    , bottomRight = 5
+                                    }
+                                , Border.solid
+                                , Border.color Colors.suggestions.border
+                                , Border.width 1
+                                ]
+                        ]
+                    , if Query.hasBlocks model.query then
+                        el [ alignRight ] (PlaybackRate.control model.locale SetPlaybackRate model.playbackRate)
+
+                      else
+                        Element.none
                     ]
-                , if Query.hasBlocks model.query then
-                    el [ alignRight ] (PlaybackRate.control model.locale SetPlaybackRate model.playbackRate)
+                , if Query.isEmpty model.query then
+                    el [ normalWidth, centerX, paddingXY 0 30 ] (examples model.locale)
 
                   else
-                    Element.none
+                    videos model.locale dict (Query.blockList model.query)
                 ]
-            , if Query.isEmpty model.query then
-                el [ normalWidth, centerX, paddingXY 0 30 ] (examples model.locale)
-
-              else
-                videos model.locale dict (Query.blockList model.query)
-            ]
 
 
 body : Model -> Element Msg
@@ -385,7 +396,7 @@ body model =
         , column
             [ width fill
             , height fill
-            , spacing 20
+            , spacing 30
             ]
             [ title model.locale
             , column [ width fill, height fill, spacing 20, alignTop ] (mainBody model)
@@ -487,24 +498,16 @@ footnote =
     { hebrew =
         paragraph []
             [ text "מבוסס על המילון של המכון לקידום החרש (שלא קיים יותר). רוצים ללמוד לדבר בשפת הסימנים? הנה "
-            , link { url = "https://shasiclass.com", label = "אתר שמרכז קורסים ומורים מוסמכים" }
+            , Util.link { url = "https://shasiclass.com", label = "אתר שמרכז קורסים ומורים מוסמכים" }
             , text "!"
             ]
     , english =
         paragraph []
             [ text "Based on SELA's dictionary (which doesn't exist anymore). If you want to learn ISL (in Isral) here's "
-            , link { url = "https://shasiclass.com", label = "a site with a list of courses and tutors" }
+            , Util.link { url = "https://shasiclass.com", label = "a site with a list of courses and tutors" }
             , text "."
             ]
     }
-
-
-link : { label : String, url : String } -> Element msg
-link { label, url } =
-    Element.link [ Font.underline, mouseOver [ Font.color Colors.linkHover ] ]
-        { url = url
-        , label = text label
-        }
 
 
 navBar : Model -> Element msg
@@ -512,15 +515,22 @@ navBar model =
     row [ spacing 10 ] <|
         case model.locale of
             Hebrew ->
-                [ link
+                [ Util.link
                     { label = "English"
                     , url =
                         Route.toString (Route.VideoList English (Query.blockList model.query))
                     }
+                , el [ paddingXY 10 0 ]
+                    (Util.link
+                        { label = "אודות"
+                        , url =
+                            Route.toString Route.About
+                        }
+                    )
                 ]
 
             English ->
-                [ link
+                [ Util.link
                     { label = "עברית"
                     , url = Route.toString (Route.VideoList Hebrew (Query.blockList model.query))
                     }

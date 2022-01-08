@@ -5,6 +5,7 @@ module Util exposing
     , dictFilterMap
     , dir
     , id
+    , link
     , listAt
     , maybeList
     , segmentedControl
@@ -134,3 +135,11 @@ delayTask : Float -> Task x a -> Task x a
 delayTask delay task =
     Process.sleep delay
         |> Task.andThen (always task)
+
+
+link : { label : String, url : String } -> Element msg
+link { label, url } =
+    Element.link [ Font.underline, mouseOver [ Font.color Colors.linkHover ] ]
+        { url = url
+        , label = text label
+        }
