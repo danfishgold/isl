@@ -486,22 +486,14 @@ footnote : Localized (Element msg)
 footnote =
     { hebrew =
         paragraph []
-            [ text "מבוסס על "
-            , link { url = "http://isl.org.il/he/דף-הבית/", label = "המילון" }
-            , text " של "
-            , link { url = "https://www.sela.org.il", label = "המכון לקידום החרש" }
-            , text ". רוצים ללמוד לדבר בשפת הסימנים? אני ממליץ בחום על "
-            , link { url = "https://www.sela.org.il/קורס-שפת-סימנים/", label = "הקורסים שלהם" }
-            , text "."
+            [ text "מבוסס על המילון של המכון לקידום החרש (שלא קיים יותר). רוצים ללמוד לדבר בשפת הסימנים? הנה "
+            , link { url = "https://shasiclass.com", label = "אתר שמרכז קורסים ומורים מוסמכים" }
+            , text "!"
             ]
     , english =
         paragraph []
-            [ text "Based on "
-            , link { url = "https://www.sela.org.il", label = "SELA" }
-            , text "'s "
-            , link { url = "http://isl.org.il/he/דף-הבית/", label = "dictionary" }
-            , text ". If you want to learn ISL (and you live in Israel), I highly recommend their "
-            , link { url = "https://www.sela.org.il/קורס-שפת-סימנים/", label = "courses" }
+            [ text "Based on SELA's dictionary (which doesn't exist anymore). If you want to learn ISL (in Isral) here's "
+            , link { url = "https://shasiclass.com", label = "a site with a list of courses and tutors" }
             , text "."
             ]
     }
