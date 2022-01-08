@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "run": "elm-live src/Main.elm -- --output=public/elm.js",
+    "dev": "elm-live src/Main.elm -- --output=public/elm.js",
     "build": "elm make src/Main.elm --output=public/elm.js"
   },
   "dependencies": {
