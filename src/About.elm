@@ -9,6 +9,7 @@ view =
     List.map (paragraph [ width (fill |> maximum 700), centerX ]) content
 
 
+content : List (List (Element.Element msg))
 content =
     [ [ text "אני "
       , link { url = "https://danfishgold.com", label = "דן פישגולד" }

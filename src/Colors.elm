@@ -7,16 +7,6 @@ import Element exposing (Color, rgb, rgb255)
 -- https://paletton.com/#uid=53m0j0kqbCbfSNBlkHdz8zOzwoU
 
 
-turquoise : Color
-turquoise =
-    rgb255 36 155 179
-
-
-darkTurtuiose : Color
-darkTurtuiose =
-    rgb255 15 130 153
-
-
 blue : Color
 blue =
     rgb255 47 106 187
@@ -57,6 +47,7 @@ gray =
     rgb 0.8 0.8 0.8
 
 
+block : { fill : Color, text : Color, hoverFill : Color, hoverText : Color }
 block =
     { fill = green
     , text = white
@@ -65,12 +56,14 @@ block =
     }
 
 
+title : { fill : Color, text : Color }
 title =
     { fill = blue
     , text = white
     }
 
 
+suggestions : { selectedFill : Color, selectedText : Color, unselectedFill : Color, unselectedText : Color, border : Color }
 suggestions =
     { selectedFill = green
     , selectedText = white
@@ -109,6 +102,7 @@ variations =
     }
 
 
+examples : { titleFill : Color, titleText : Color, hoverText : Color }
 examples =
     { titleFill = green
     , titleText = white

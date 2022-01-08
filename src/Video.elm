@@ -1,7 +1,7 @@
 module Video exposing (element)
 
 import Dictionary exposing (WordId)
-import Element exposing (Element, html)
+import Element exposing (Element)
 import Html
 import Html.Attributes exposing (attribute, autoplay, controls, preload, src)
 
