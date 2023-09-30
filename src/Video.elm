@@ -10,7 +10,7 @@ element : WordId -> Element msg
 element wordId =
     Element.html <|
         Html.video
-            [ src <| "https://files.fishgold.co.il/isl/videos/" ++ Dictionary.wordIdToString wordId ++ ".mp4"
+            [ src <| "https://files.dan.city/isl/videos/" ++ Dictionary.wordIdToString wordId ++ ".mp4"
             , controls True
             , autoplay False
             , attribute "muted" "true"
