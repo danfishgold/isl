@@ -111,7 +111,7 @@ subscriptions _ =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case Debug.log "msg" msg of
+    case msg of
         SetDictionary locale dictionary ->
             ( { model | dictionary = L10n.set locale dictionary model.dictionary }
             , Cmd.none
